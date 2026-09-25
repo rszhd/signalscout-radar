@@ -35,6 +35,7 @@ pnpm migrate
 pnpm worker                 # a run every hour; add --once for one run
 pnpm dev                    # the page on http://localhost:4321
 pnpm test                   # needs the Postgres above
+pnpm phrases [days]         # requests kept per dollar, per phrase
 ```
 
 A push to `main` tests, builds one image and deploys it by digest to the box

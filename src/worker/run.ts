@@ -18,7 +18,8 @@ import { readsLikeRequest } from "../sort/phrases.ts";
 
 export interface SearchPlan {
   readonly platform: "reddit" | "x";
-  readonly source: SocialSource;
+  // Only the search: Radar never reads replies and never checks a key.
+  readonly source: Pick<SocialSource, "search">;
   readonly apiKey: string;
   readonly phrases: readonly string[];
   /** Pages per phrase per run, at most. */
@@ -103,21 +104,40 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const [row] = await sql<{ id: string }[]>`insert into runs (started_at) values (${start}) returning id::text`;
   const runId = row?.id as string;
 
-  const totals = { providerMicros: 0, modelMicros: 0, fetched: 0, filtered: 0, sorted: 0, kept: 0, errors: 0 };
+  const blank = () => ({ providerMicros: 0, modelMicros: 0, fetched: 0, filtered: 0, sorted: 0, kept: 0, errors: 0 });
+  const totals = blank();
+  // The same counters for the phrase being searched, so a phrase can be judged
+  // by what it found per dollar (phrase_stats).
+  let phrase = { platform: "", text: "", ...blank() };
+  const add = (field: keyof ReturnType<typeof blank>, amount: number) => {
+    totals[field] += amount;
+    phrase[field] += amount;
+  };
   const spent = () => totals.providerMicros + totals.modelMicros;
   const fits = (micros: number) => spent() + micros <= runCap;
-  const save = () => sql`
-    update runs set provider_micros = ${Math.round(totals.providerMicros)},
-      model_micros = ${Math.round(totals.modelMicros)}, fetched = ${totals.fetched},
-      filtered = ${totals.filtered}, sorted = ${totals.sorted}, kept = ${totals.kept}
-    where id = ${runId}`;
+  const save = async () => {
+    await sql`
+      update runs set provider_micros = ${Math.round(totals.providerMicros)},
+        model_micros = ${Math.round(totals.modelMicros)}, fetched = ${totals.fetched},
+        filtered = ${totals.filtered}, sorted = ${totals.sorted}, kept = ${totals.kept}
+      where id = ${runId}`;
+    if (!phrase.text) return;
+    await sql`
+      insert into phrase_stats (run_id, platform, phrase, provider_micros, model_micros, fetched, filtered, kept, errors)
+      values (${runId}, ${phrase.platform}, ${phrase.text}, ${Math.round(phrase.providerMicros)},
+              ${Math.round(phrase.modelMicros)}, ${phrase.fetched}, ${phrase.filtered}, ${phrase.kept}, ${phrase.errors})
+      on conflict (run_id, platform, phrase) do update set
+        provider_micros = excluded.provider_micros, model_micros = excluded.model_micros,
+        fetched = excluded.fetched, filtered = excluded.filtered, kept = excluded.kept, errors = excluded.errors`;
+  };
 
   let outcome: RunResult["outcome"] = "done";
   const since = new Date(start.getTime() - options.lookBackMs);
 
   try {
     outer: for (const plan of plans) {
-      for (const phrase of plan.phrases) {
+      for (const text of plan.phrases) {
+        phrase = { platform: plan.platform, text, ...blank() };
         let cursor: string | undefined;
         for (let page = 0; page < plan.maxPages; page += 1) {
           if (!fits(plan.worstSearchMicros)) {
@@ -127,7 +147,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           let result: Awaited<ReturnType<SocialSource["search"]>>;
           try {
             result = await plan.source.search({
-              query: { queries: [phrase], channels: [], since },
+              query: { queries: [text], channels: [], since },
               credentials: { apiKey: plan.apiKey },
               cursor,
               limit: plan.limit,
@@ -136,19 +156,19 @@ export async function run(options: RunOptions): Promise<RunResult> {
             // One provider answering 500 for one phrase (US-413 saw it) is no
             // reason to stop the others. A failed call reports no units; if
             // the provider billed it anyway, the invoice says so, not us.
-            totals.errors += 1;
-            log(`${plan.platform} "${phrase}": ${(error as Error).message}`);
+            add("errors", 1);
+            await save();
+            log(`${plan.platform} "${text}": ${(error as Error).message}`);
             break;
           }
-          totals.providerMicros += result.unitsConsumed * plan.unitMicros;
+          add("providerMicros", result.unitsConsumed * plan.unitMicros);
           await save();
 
           const fresh = await freshPosts(sql, plan.platform, result.posts);
-          totals.fetched += fresh.length;
+          add("fetched", fresh.length);
           for (const post of fresh) {
-            const text = `${post.title ?? ""} ${post.text}`;
-            if (!readsLikeRequest(text)) continue;
-            totals.filtered += 1;
+            if (!readsLikeRequest(`${post.title ?? ""} ${post.text}`)) continue;
+            add("filtered", 1);
             if (!fits(worstSortMicros)) {
               outcome = "budget";
               break outer;
@@ -160,8 +180,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
               text: post.text,
             });
             const cost = modelMicros(sorted.call);
-            totals.modelMicros += Number.isNaN(cost) ? worstSortMicros : cost;
-            totals.sorted += 1;
+            add("modelMicros", Number.isNaN(cost) ? worstSortMicros : cost);
+            add("sorted", 1);
             if (sorted.status === "sorted" && sorted.verdict.asksForProduct && sorted.verdict.category !== "other") {
               await saveRequest(sql, {
                 platform: plan.platform,
@@ -173,8 +193,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
                 wants: sorted.verdict.wants,
                 category: sorted.verdict.category,
                 postedAt: post.postedAt,
+                phrase: text,
               });
-              totals.kept += 1;
+              add("kept", 1);
             }
             await save();
           }

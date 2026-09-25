@@ -1,10 +1,12 @@
-import type { CandidatePost, ModelCall, SearchResult, SocialSource } from "@signalscout/engine";
+import type { CandidatePost, ModelCall, SearchResult } from "@signalscout/engine";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Sql } from "../db/client.ts";
 import { spentToday } from "../db/queries.ts";
 import type { SortOutcome } from "../sort/categorize.ts";
 import { createTestDatabase } from "../testing/database.ts";
 import { run, type RunOptions, type SearchPlan } from "./run.ts";
+
+type SocialSource = SearchPlan["source"];
 
 const noon = new Date("2026-09-25T12:00:00Z");
 let sql: Sql;
@@ -32,7 +34,6 @@ function post(text: string): CandidatePost {
 /** A source that serves the same page for ever, billing 20 units a page. */
 function endlessSource(page: () => CandidatePost[], calls = { count: 0 }): SocialSource {
   return {
-    validateCredentials: async () => ({ ok: true }) as never,
     async search(): Promise<SearchResult> {
       calls.count += 1;
       return { posts: page(), unitsConsumed: 20, next: { status: "ready", cursor: "more" } };
@@ -151,8 +152,7 @@ describe("run", () => {
   it("skips a phrase whose search fails, and records what the run spent", async () => {
     let pages = 0;
     const failing: SocialSource = {
-      validateCredentials: async () => ({ ok: true }) as never,
-      async search() {
+        async search() {
         pages += 1;
         if (pages === 2) throw new Error("provider down");
         return { posts: [], unitsConsumed: 20, next: { status: "ready", cursor: "more" } };
@@ -173,5 +173,32 @@ describe("run", () => {
     const [row] = await sql<{ provider_micros: string; outcome: string }[]>`select provider_micros::text, outcome from runs`;
     expect(row?.provider_micros).toBe("12000");
     expect(row?.outcome).toBe("done, 1 failed searches");
+  });
+});
+
+describe("phrase stats", () => {
+  it("records what each phrase cost and found, and which phrase found a request", async () => {
+    const texts: Record<string, string> = {
+      "can anyone recommend": "Can anyone recommend headphones for a loud office?",
+      "what do you use": "Nice weather today.",
+    };
+    const bySearch: SocialSource = {
+        async search(request) {
+        const phrase = request.query.queries[0] as string;
+        return { posts: [post(texts[phrase] as string)], unitsConsumed: 20, next: { status: "done" } };
+      },
+    };
+    await run(
+      options({ plans: [{ ...plan(bySearch), phrases: ["can anyone recommend", "what do you use"] }] }),
+    );
+
+    const stats = await sql<{ phrase: string; provider_micros: string; model_micros: string; fetched: number; filtered: number; kept: number }[]>`
+      select phrase, provider_micros::text, model_micros::text, fetched, filtered, kept from phrase_stats order by phrase`;
+    expect(stats).toEqual([
+      { phrase: "can anyone recommend", provider_micros: "4000", model_micros: "300", fetched: 1, filtered: 1, kept: 1 },
+      { phrase: "what do you use", provider_micros: "4000", model_micros: "0", fetched: 1, filtered: 0, kept: 0 },
+    ]);
+    const [request] = await sql<{ phrase: string }[]>`select phrase from requests`;
+    expect(request?.phrase).toBe("can anyone recommend");
   });
 });

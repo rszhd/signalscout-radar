@@ -45,12 +45,12 @@ export async function markSeen(sql: Sql, platform: string, externalIds: readonly
 
 export async function saveRequest(
   sql: Sql,
-  row: Omit<RequestRow, "id"> & { externalId: string },
+  row: Omit<RequestRow, "id"> & { externalId: string; phrase: string },
 ) {
   await sql`
-    insert into requests (platform, external_id, url, channel, title, excerpt, wants, category, posted_at)
+    insert into requests (platform, external_id, url, channel, title, excerpt, wants, category, posted_at, phrase)
     values (${row.platform}, ${row.externalId}, ${row.url}, ${row.channel}, ${row.title},
-            ${row.excerpt}, ${row.wants}, ${row.category}, ${row.postedAt})
+            ${row.excerpt}, ${row.wants}, ${row.category}, ${row.postedAt}, ${row.phrase})
     on conflict (platform, external_id) do nothing`;
 }
 
@@ -105,4 +105,46 @@ export async function categoryCounts(sql: Sql, now = new Date()): Promise<Catego
 export async function lastRunAt(sql: Sql): Promise<Date | null> {
   const [row] = await sql<{ at: Date | null }[]>`select max(finished_at) as at from runs`;
   return row?.at ?? null;
+}
+
+export interface PhraseReport {
+  platform: string;
+  phrase: string;
+  runs: number;
+  spentMicros: number;
+  fetched: number;
+  filtered: number;
+  kept: number;
+  errors: number;
+  /** Requests kept per dollar spent on this phrase; null before it has cost anything. */
+  keptPerDollar: number | null;
+}
+
+/** Every phrase over the last `days`, best value first. */
+export async function phraseReport(sql: Sql, days = 7, now = new Date()): Promise<PhraseReport[]> {
+  const rows = await sql<Record<string, string>[]>`
+    select s.platform, s.phrase, count(*)::text as runs,
+      sum(s.provider_micros + s.model_micros)::text as spent,
+      sum(s.fetched)::text as fetched, sum(s.filtered)::text as filtered,
+      sum(s.kept)::text as kept, sum(s.errors)::text as errors
+    from phrase_stats s join runs r on r.id = s.run_id
+    where r.started_at >= ${now}::timestamptz - make_interval(days => ${days})
+    group by s.platform, s.phrase`;
+  return rows
+    .map((row) => {
+      const spentMicros = Number(row.spent);
+      const kept = Number(row.kept);
+      return {
+        platform: row.platform as string,
+        phrase: row.phrase as string,
+        runs: Number(row.runs),
+        spentMicros,
+        fetched: Number(row.fetched),
+        filtered: Number(row.filtered),
+        kept,
+        errors: Number(row.errors),
+        keptPerDollar: spentMicros > 0 ? kept / (spentMicros / 1e6) : null,
+      };
+    })
+    .sort((a, b) => (b.keptPerDollar ?? -1) - (a.keptPerDollar ?? -1));
 }
