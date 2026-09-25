@@ -6,7 +6,7 @@ priority: p1
 created: 2026-09-25T22:57+08:00
 parent:
 area: radar
-resolution:
+resolution: shipped
 ---
 
 ## Context
@@ -27,13 +27,13 @@ posted time, found time. No author. A post seen before is not sorted twice.
 
 ## Acceptance
 
-- [ ] A run searches, removes posts already stored, sorts the rest (US-414)
+- [x] A run searches, removes posts already stored, sorts the rest (US-414)
       and writes the survivors
-- [ ] A test proves a run stops before the call that would pass $2 in one UTC
+- [x] A test proves a run stops before the call that would pass $2 in one UTC
       day, with the day's spend read from the database
-- [ ] The day's spend and the posts kept are written for every run, so the
+- [x] The day's spend and the posts kept are written for every run, so the
       page and the owner can read them
-- [ ] Posts older than 30 days are deleted
+- [x] Posts older than 30 days are deleted
 
 ## Notes
 
@@ -43,3 +43,13 @@ posted time, found time. No author. A post seen before is not sorted twice.
   the box by the owner.
 
 ## Log
+- 2026-09-25T23:44+08:00 — `src/worker/run.ts` and `main.ts`, with `src/db/`. X (SocialData,
+  4 phrases, up to 10 pages) and Reddit (ScrapeCreators, 6 phrases, up to 3
+  pages), once an hour. Each paid call is checked at its worst case against
+  the run's share of the day (the day's remainder over the runs still to
+  come) before it is made. A failed search is logged and skipped, since
+  US-413 saw a provider 500. Excerpts and titles lose every @handle and
+  u/ name, X's entities and its t.co links. Tests: 11, on a real Postgres.
+  One live run on the local database: 202 posts fetched, 74 past the free
+  filter, 22 kept, $0.07 of a $0.22 share. Read by hand: 21 of 22 are real
+  requests; "any suggestions for Proxy" probably is not.

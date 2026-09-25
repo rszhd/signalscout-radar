@@ -1,0 +1,18 @@
+# Local development only: Radar's own Postgres, on a port no other
+# SignalScout checkout uses. Production is docker-compose.prod.yml.
+name: signalscout-radar-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: radar
+      POSTGRES_DB: radar
+    ports:
+      - "127.0.0.1:5439:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+volumes:
+  postgres:

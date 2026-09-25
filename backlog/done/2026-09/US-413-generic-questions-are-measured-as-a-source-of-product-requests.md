@@ -6,7 +6,7 @@ priority: p1
 created: 2026-09-25T22:57+08:00
 parent:
 area: radar
-resolution:
+resolution: shipped
 ---
 
 ## Context
