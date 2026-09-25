@@ -81,18 +81,16 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
     </div>
   </section>
 
-  <section class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+  <section class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
     <div>
       <Feed client:load requests={cards} showCategory={false} />
-    </div>
-    <div class="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
       <Pitch topic={name} campaign={category.slug} />
-      {related.length > 0 && (
-        <div>
-          <h2 class="mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Related</h2>
-          <CategoryList categories={related} compact />
-        </div>
-      )}
     </div>
+    {related.length > 0 && (
+      <div class="lg:self-start">
+        <h2 class="mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Related</h2>
+        <CategoryList categories={related} compact />
+      </div>
+    )}
   </section>
 </Layout>

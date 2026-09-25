@@ -1,5 +1,9 @@
 ---
-/** The one line to SignalScout at the end of a page or in the side column. */
+/**
+ * The one line to SignalScout, after the feed. Plain text, not a card: a
+ * sticky sales banner beside every post reads as an advert, and the people
+ * this page is shared with (Reddit, first) distrust one on sight.
+ */
 import { signalscoutUrl } from "@/lib/links";
 
 interface Props {
@@ -11,23 +15,9 @@ interface Props {
 const { topic, campaign = "home" } = Astro.props;
 ---
 
-<aside class="rounded-2xl border bg-card p-6 shadow-[0_1px_2px_rgb(20_24_21/4%),0_18px_44px_rgb(20_24_21/8%)]">
-  <p class="text-[0.75rem] font-semibold tracking-wider text-primary uppercase">
-    <span class="mr-1.5 inline-block size-1.5 -translate-y-px rounded-full bg-primary"></span>
-    SignalScout
-  </p>
-  <h2 class="mt-3 text-xl leading-snug font-semibold tracking-tight">
-    {topic ? `Selling in ${topic}?` : "You sell one of these?"} See only the posts that fit your product.
-  </h2>
-  <p class="mt-2 text-[0.9375rem] leading-relaxed text-secondary-foreground">
-    SignalScout reads the same platforms for your product alone, scores every post, and explains
-    why it matched.
-  </p>
-  <a
-    href={signalscoutUrl("pitch", campaign)}
-    class="mt-5 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-[0.9375rem] font-semibold text-primary-foreground hover:bg-[#0842a0]"
-  >
-    Start free <span aria-hidden="true">→</span>
-  </a>
-  <p class="mt-3 text-[0.8125rem] text-muted-foreground">No credit card. 7-day trial.</p>
-</aside>
+<p class="mt-10 border-t pt-6 text-[0.9375rem] leading-relaxed text-muted-foreground">
+  Radar runs on the open-source engine of
+  <a href={signalscoutUrl("pitch", campaign)} class="font-semibold text-foreground hover:underline">SignalScout</a>.
+  {topic ? `Sell something in ${topic}?` : "Sell something people ask about here?"}
+  SignalScout can watch for the posts about your product.
+</p>

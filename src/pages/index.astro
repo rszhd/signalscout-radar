@@ -90,14 +90,10 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
     </section>
   )}
 
-  <section id="latest" class="mx-auto grid max-w-[1240px] scroll-mt-20 grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-    <div>
-      <h2 class="mb-1 text-2xl font-semibold tracking-tight">Latest requests</h2>
-      <p class="mb-5 text-[0.9375rem] text-muted-foreground">Newest first. Every post links to the original.</p>
-      <Feed client:load requests={cards} />
-    </div>
-    <div class="lg:sticky lg:top-24 lg:self-start">
-      <Pitch />
-    </div>
+  <section id="latest" class="mx-auto max-w-[860px] scroll-mt-20 px-4 pt-14 sm:px-8">
+    <h2 class="mb-1 text-2xl font-semibold tracking-tight">Latest requests</h2>
+    <p class="mb-5 text-[0.9375rem] text-muted-foreground">Newest first. Every post links to the original.</p>
+    <Feed client:load requests={cards} />
+    <Pitch />
   </section>
 </Layout>
