@@ -1,31 +1,25 @@
 import { useState } from "react";
 import { RequestCard } from "@/components/RequestCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type Platform, platforms, type Request } from "@/data/mock";
+import { type Card, type Platform, platforms } from "@/lib/present";
 
 type Filter = "all" | Platform;
 
-const order: Filter[] = ["all", "reddit", "x", "linkedin", "youtube", "tiktok", "instagram"];
+const order: Filter[] = ["all", "reddit", "x"];
 
-export function Feed({
-  requests,
-  showCategory = true,
-}: {
-  requests: readonly Request[];
-  showCategory?: boolean;
-}) {
+export function Feed({ requests, showCategory = true }: { requests: Card[]; showCategory?: boolean }) {
   const [filter, setFilter] = useState<Filter>("all");
   const shown = filter === "all" ? requests : requests.filter((r) => r.platform === filter);
 
   return (
     <div className="flex flex-col gap-5">
       <Tabs value={filter} onValueChange={(value) => setFilter(value as Filter)}>
-        <TabsList className="h-10! w-full justify-start gap-1 overflow-x-auto rounded-full border bg-card p-1 sm:w-fit">
+        <TabsList className="h-10! w-fit justify-start gap-1 rounded-full border bg-card p-1">
           {order.map((key) => {
             const count =
               key === "all" ? requests.length : requests.filter((r) => r.platform === key).length;
-            // A tab that leads to an empty list is noise on a category page.
-            if (count === 0) return null;
+            // A tab that leads to an empty list is noise.
+            if (count === 0 && key !== "all") return null;
             return (
               <TabsTrigger
                 key={key}
@@ -49,7 +43,7 @@ export function Feed({
         ))}
         {shown.length === 0 && (
           <p className="rounded-xl border border-dashed bg-card p-8 text-center text-muted-foreground">
-            No requests from this platform in the last 7 days.
+            Nothing here yet. Radar looks again every hour.
           </p>
         )}
       </div>

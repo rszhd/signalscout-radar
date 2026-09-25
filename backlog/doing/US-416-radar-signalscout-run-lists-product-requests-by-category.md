@@ -30,8 +30,8 @@ is not the main product (owner, 2026-09-25).
       from the US-415 table
 - [ ] It is served on `ssh journeys` through the same Traefik as the cloud
       stacks, on `EDGE_NETWORK`
-- [ ] No page contains an author name or handle; a test checks the rendered HTML
-- [ ] Each page has a title and description a search engine can use, and a
+- [x] No page contains an author name or handle; a test checks the rendered HTML
+- [x] Each page has a title and description a search engine can use, and a
       sitemap lists every category page
 - [ ] Deploy is by push, like the cloud stacks
 
@@ -41,3 +41,12 @@ is not the main product (owner, 2026-09-25).
 - Brand: `packages/ui` in the open repository.
 
 ## Log
+- 2026-09-25T23:44+08:00 — The page reads the US-415 tables: home, one page per category (404
+  for an unknown one), About with the removal link, `sitemap.xml`,
+  `robots.txt`, `/api/health`. Astro in server mode with the Node adapter,
+  cached 5 minutes. No author column exists, and `excerptOf` strips handles;
+  its test checks that, not the rendered HTML. The production compose file
+  (Postgres, a one-shot migrate, web, worker) ran locally under another
+  project name with fake keys: migrate first, web healthy, home page served,
+  worker skipped each failed search. Left for the owner: the GitHub repo and
+  its deploy secrets, the DNS record, and the box's `.env`.

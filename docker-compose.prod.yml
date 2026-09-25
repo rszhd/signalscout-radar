@@ -1,0 +1,88 @@
+# Production on the box, beside the SignalScout stacks (US-416).
+#
+#   RADAR_IMAGE=ghcr.io/…@sha256:… docker compose -p signalscout-radar -f docker-compose.prod.yml up -d
+#
+# Radar keeps its own Postgres and its own volume, as every product on the box
+# does. Only the edge network is shared: the Traefik that serves SignalScout
+# serves radar.signalscout.run too. `.env` beside this file holds the secrets
+# and is never copied by a deploy; `.env.example` lists what it needs.
+
+name: signalscout-radar
+
+x-app: &app
+  image: "${RADAR_IMAGE:?deploy by digest, set RADAR_IMAGE}"
+  restart: unless-stopped
+  environment:
+    DATABASE_URL: postgres://radar:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/radar
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: radar
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radar -d radar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["node", "src/db/migrate-cli.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    environment:
+      DATABASE_URL: postgres://radar:${POSTGRES_PASSWORD}@postgres:5432/radar
+      RADAR_CONTACT: ${RADAR_CONTACT:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
+      - edge
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4321/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # List form: Compose interpolates label values, not label keys.
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${EDGE_NETWORK:?set EDGE_NETWORK}
+      - traefik.http.routers.signalscout-radar.rule=Host(`${RADAR_HOST:-radar.signalscout.run}`)
+      - traefik.http.routers.signalscout-radar.entrypoints=websecure
+      - traefik.http.routers.signalscout-radar.tls.certresolver=le
+      - traefik.http.services.signalscout-radar.loadbalancer.server.port=4321
+
+  worker:
+    <<: *app
+    command: ["node", "src/worker/main.ts"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://radar:${POSTGRES_PASSWORD}@postgres:5432/radar
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres:
+
+networks:
+  edge:
+    external: true
+    name: ${EDGE_NETWORK}

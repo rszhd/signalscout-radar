@@ -1,5 +1,5 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
-import type { Category } from "@/data/mock";
+import type { CategoryTile } from "@/lib/present";
 import { cn } from "@/lib/utils";
 
 export function CategoryList({
@@ -7,15 +7,15 @@ export function CategoryList({
   current,
   compact = false,
 }: {
-  categories: readonly Category[];
+  categories: CategoryTile[];
   current?: string;
   compact?: boolean;
 }) {
   return (
     <ul className={cn("grid gap-2", !compact && "sm:grid-cols-2 lg:grid-cols-4")}>
       {categories.map((category) => {
-        const up = category.trend >= 0;
         const active = category.slug === current;
+        const up = (category.trend ?? 0) >= 0;
         return (
           <li key={category.slug}>
             <a
@@ -27,17 +27,19 @@ export function CategoryList({
               )}
             >
               <span className="font-semibold text-foreground">{category.name}</span>
-              <span className="flex items-center gap-2 text-[0.8125rem] tabular-nums">
+              <span className="flex shrink-0 items-center gap-2 text-[0.8125rem] tabular-nums">
                 <span className="text-secondary-foreground">{category.week}</span>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-0.5",
-                    up ? "text-success" : "text-muted-foreground",
-                  )}
-                >
-                  {up ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
-                  {Math.abs(category.trend)}%
-                </span>
+                {category.trend !== null && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-0.5",
+                      up ? "text-success" : "text-muted-foreground",
+                    )}
+                  >
+                    {up ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
+                    {Math.abs(category.trend)}%
+                  </span>
+                )}
               </span>
             </a>
           </li>

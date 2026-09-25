@@ -1,0 +1,46 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { contactUrl } from "@/lib/present";
+---
+
+<Layout
+  title="How SignalScout Radar works"
+  description="How Radar finds public posts where people ask which product to buy, what it shows, and how to have a post removed."
+>
+  <article class="mx-auto max-w-[760px] px-4 pt-12 sm:px-8">
+    <p class="text-[0.8125rem] font-semibold tracking-wider text-primary uppercase">How it works</p>
+    <h1 class="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">What Radar does</h1>
+
+    <div class="mt-6 space-y-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+      <p>
+        Every hour Radar searches Reddit and X for public posts with phrases like
+        <em>"can anyone recommend"</em>, <em>"what do you use"</em> and <em>"is it worth buying"</em>.
+      </p>
+      <p>
+        A simple text rule sets most of them aside for free. An AI model reads the rest and answers
+        two questions: does the author ask which product to use or buy, and what kind of product is it?
+        It also writes one line that says what the person wants.
+      </p>
+      <p>
+        Radar is built on the open-source engine of
+        <a href="https://www.signalscout.run" class="font-semibold text-primary hover:underline">SignalScout</a>.
+        SignalScout does the same job for one product: it finds only the posts that fit what you sell,
+        scores them, and explains why.
+      </p>
+    </div>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">What Radar shows, and what it does not</h2>
+    <ul class="mt-4 list-disc space-y-2 pl-6 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+      <li>A short excerpt of each post and a link to the original.</li>
+      <li>No usernames, no profile pictures, and no copy of the full post.</li>
+      <li>Nothing older than 30 days.</li>
+    </ul>
+
+    <h2 id="remove" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Remove a post</h2>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+      If a post on Radar is yours, or you want it gone for any other reason,
+      <a href={contactUrl} class="font-semibold text-primary hover:underline">send us its link</a>.
+      We remove it, and Radar will not show it again.
+    </p>
+  </article>
+</Layout>
