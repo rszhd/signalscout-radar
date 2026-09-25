@@ -59,7 +59,11 @@ const subreddits = {
   // A subreddit's first read reaches back a day or two; later reads find only
   // what is new, because `seen_posts` removes the overlap.
   lookBackMs: 48 * 60 * 60 * 1000,
-  maxPages: 2,
+  // One page of about 23 posts, every third hour: enough for every subreddit
+  // here except r/whatcarshouldIbuy, and a sixth of the cost of two pages
+  // every hour.
+  maxPages: 1,
+  everyHours: 3,
   limit: 25,
   phrases: [],
 };

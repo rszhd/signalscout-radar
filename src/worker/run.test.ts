@@ -312,3 +312,27 @@ describe("rotate", () => {
     expect(rotate([], 3)).toEqual([]);
   });
 });
+
+describe("everyHours", () => {
+  it("skips a plan outside its hours and passes its whole share on", async () => {
+    await sql`insert into runs (started_at, provider_micros) values (${new Date("2026-09-25T01:00:00Z")}, 1_990_000)`;
+    const searched: string[] = [];
+    const counting = (name: string): SocialSource => ({
+      async search() {
+        searched.push(name);
+        return { posts: [], unitsConsumed: 20, next: { status: "ready", cursor: "more" } };
+      },
+    });
+    // Noon UTC on 2026-09-25 is hour 497,316 since 1970, and 497,316 % 5 = 1.
+    await run(
+      options({
+        plans: [
+          { ...plan(counting("slow")), share: 0.5, everyHours: 5 },
+          { ...plan(counting("fast")), share: 0.5 },
+        ],
+      }),
+    );
+    // The slow plan's $0.005 passes on: the fast one gets $0.01, two pages.
+    expect(searched).toEqual(["fast", "fast"]);
+  });
+});

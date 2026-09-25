@@ -37,6 +37,13 @@ export interface SearchPlan {
    * a run's 293 requests while software was never reached.
    */
   readonly share?: number;
+  /**
+   * Run this plan only in hours divisible by this number. A subreddit gets
+   * fewer than a page of new posts in three hours, and every read is billed
+   * whether it finds anything or not: read hourly, 27 subreddits cost more
+   * than the whole $2 a day. A skipped plan passes its whole share on.
+   */
+  readonly everyHours?: number;
   /** How far back this plan looks, when it differs from the run's. */
   readonly lookBackMs?: number;
   /** Pages per phrase or subreddit per run, at most. */
@@ -160,16 +167,21 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
   try {
     let carried = 0;
+    const hour = Math.floor(start.getTime() / (60 * 60 * 1000));
     for (const plan of plans) {
       planStart = spent();
       planAllowance = plan.share === undefined ? runCap : runCap * plan.share + carried;
+      if (plan.everyHours && hour % plan.everyHours !== 0) {
+        carried = planAllowance;
+        continue;
+      }
       const since = new Date(start.getTime() - (plan.lookBackMs ?? options.lookBackMs));
       const inputs = rotate(
         [
           ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
           ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
         ],
-        Math.floor(start.getTime() / (60 * 60 * 1000)),
+        plan.everyHours ? Math.floor(hour / plan.everyHours) : hour,
       );
       inputs: for (const input of inputs) {
         const { text } = input;
