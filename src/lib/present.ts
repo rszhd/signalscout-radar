@@ -3,7 +3,7 @@
  * island receives its props as JSON.
  */
 import type { CategoryCount, RequestRow } from "@/db/queries.ts";
-import { categories, categoryBySlug } from "@/sort/categories.ts";
+import { categoryBySlug, offeredCategories } from "@/sort/categories.ts";
 
 export type Platform = "reddit" | "x";
 
@@ -59,7 +59,7 @@ export interface CategoryTile {
 /** Every category with a request this week, busiest first. */
 export function toTiles(counts: readonly CategoryCount[]): CategoryTile[] {
   const byCategory = new Map(counts.map((count) => [count.category, count]));
-  return categories
+  return offeredCategories
     .map((category) => {
       const count = byCategory.get(category.slug);
       const week = count?.week ?? 0;

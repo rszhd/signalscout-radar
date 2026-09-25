@@ -99,3 +99,15 @@ names, so excerpts must drop them as they drop @handles.
   went to every third hour), Reddit keyword search 10%. Expected cost about
   $0.15 a day. r/webdev and the general business subreddits are left out.
 
+- 2026-09-26T07:31+08:00 — **Parked: the owner turned services off.** One switch,
+  `servicesEnabled` in `src/sort/categories.ts`, now false: the model is
+  not offered service categories and refuses a request to hire, the worker
+  does not read the hiring subreddits (their 10% goes back to the goods
+  subreddits, 30%), and the page, the feeds and the counts hide service
+  categories; a service category page is a 404. Production had stored 22
+  service requests from the 21:00 UTC read (content 9, design 7, accounting
+  and legal 2, consulting 2, virtual assistants 2). They stay in the table,
+  hidden, and come back if the switch does. The fraud rule, the free skip of
+  offers and the contact scrubbing stay on: they serve products too. The
+  production read was not checked by hand before it was turned off.
+

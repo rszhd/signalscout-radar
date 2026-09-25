@@ -14,7 +14,7 @@ import {
   type ModelCall,
 } from "@signalscout/engine";
 import { z } from "zod";
-import { categories, categorySlugs } from "./categories.ts";
+import { categorySlugs, offeredCategories, servicesEnabled } from "./categories.ts";
 
 export const verdictSchema = z.object({
   isRequest: z
@@ -39,19 +39,28 @@ export interface PostToSort {
 export function buildSystemPrompt(): string {
   return [
     "You read one public post and decide whether its author asks other people",
-    "which product to use or buy, or wants to hire someone for business work.",
+    servicesEnabled
+      ? "which product to use or buy, or wants to hire someone for business work."
+      : "which product to use or buy.",
     "",
     "A PRODUCT is something a person can pick: software, an app, a website to",
     "use, a device, a gadget, gear, clothing, a car. Asking for an alternative",
     "to a product they use counts. Asking whether a product is worth buying",
     "counts.",
     "",
-    "A BUSINESS SERVICE is work someone is hired to do: an agency, a freelancer,",
-    "a developer, a designer, a marketer, a consultant, an accountant, a lawyer,",
-    "a virtual assistant. Asking where to find one, or posting a one-off or",
-    "contract gig, counts.",
-    "",
+    ...(servicesEnabled
+      ? [
+          "A BUSINESS SERVICE is work someone is hired to do: an agency, a freelancer,",
+          "a developer, a designer, a marketer, a consultant, an accountant, a lawyer,",
+          "a virtual assistant. Asking where to find one, or posting a one-off or",
+          "contract gig, counts.",
+          "",
+        ]
+      : []),
     "It is NOT a request when the post:",
+    ...(servicesEnabled
+      ? []
+      : ["- wants to hire a person, a freelancer or an agency for work"]),
     "- is a job ad for a full-time or permanent role (salary, benefits, a team",
     "  to join): that is recruiting, not buying",
     "- offers a service or a product, or promotes one ([For Hire], portfolios)",
@@ -65,7 +74,7 @@ export function buildSystemPrompt(): string {
     "  forged or edited documents, academic work to submit as one's own, spam",
     "",
     "CATEGORIES. Choose the one that fits best, or 'other':",
-    ...categories.map((category) => `- ${category.slug}: ${category.covers}`),
+    ...offeredCategories.map((category) => `- ${category.slug}: ${category.covers}`),
     "",
     "WANTS. When it is a request, write what the author asks for in one plain",
     "line, at most 100 characters, with the details that matter: budget, size,",

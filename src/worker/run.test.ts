@@ -336,3 +336,23 @@ describe("everyHours", () => {
     expect(searched).toEqual(["fast", "fast"]);
   });
 });
+
+describe("hidden categories", () => {
+  it("keeps a service row stored but shows none of it while services are off", async () => {
+    const { latestRequests, requestsIn, categoryCounts } = await import("../db/queries.ts");
+    const { servicesEnabled } = await import("../sort/categories.ts");
+    await sql`insert into requests (platform, external_id, url, excerpt, wants, category, posted_at, phrase)
+              values ('reddit', 's1', 'https://r/1', 'Need a logo', 'A logo', 'design-services', ${noon}, 'r/DesignJobs'),
+                     ('reddit', 'p1', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop')`;
+
+    const shown = (await latestRequests(sql)).map((row) => row.category);
+    const counts = (await categoryCounts(sql, noon)).map((row) => row.category);
+
+    expect(servicesEnabled).toBe(false);
+    expect(shown).toEqual(["computers"]);
+    expect(counts).toEqual(["computers"]);
+    expect(await requestsIn(sql, "design-services")).toEqual([]);
+    const [{ count }] = await sql<{ count: string }[]>`select count(*)::text from requests`;
+    expect(count).toBe("2");
+  });
+});

@@ -54,11 +54,25 @@ export const categories = [
 export type CategorySlug = (typeof categories)[number]["slug"];
 export type CategoryKind = (typeof categories)[number]["kind"];
 
-export const categorySlugs = categories.map((category) => category.slug) as [
+/**
+ * Whether Radar sorts, fetches and shows business services (US-429). Off at
+ * the owner's word on 2026-09-26. Off means the model is not offered the
+ * service categories, the worker does not read the hiring subreddits, and the
+ * page hides any service rows already stored — they stay in the table.
+ */
+export const servicesEnabled = false;
+
+/** The categories Radar uses now: every one, or every one but services. */
+export const offeredCategories = categories.filter(
+  (category) => servicesEnabled || category.kind !== "services",
+);
+
+export const categorySlugs = offeredCategories.map((category) => category.slug) as [
   CategorySlug,
   ...CategorySlug[],
 ];
 
+/** An offered category, or undefined — a hidden one is a 404, not a page. */
 export function categoryBySlug(slug: string) {
-  return categories.find((category) => category.slug === slug);
+  return offeredCategories.find((category) => category.slug === slug);
 }

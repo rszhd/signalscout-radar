@@ -1,3 +1,4 @@
+import { categorySlugs } from "../sort/categories.ts";
 import type { Sql } from "./client.ts";
 
 export interface RequestRow {
@@ -61,20 +62,23 @@ export async function forgetOld(sql: Sql, now = new Date()) {
   await sql`delete from seen_posts where seen_at < ${cutoff}`;
 }
 
+/** The categories the page may show; a hidden kind's rows stay stored (US-429). */
+const shown = () => categorySlugs as string[];
+
 const columns = (sql: Sql) => sql`
   id::text, platform, url, channel, title, excerpt, wants, category, posted_at as "postedAt"`;
 
 export async function latestRequests(sql: Sql, limit = 50): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests
-    where removed_at is null
+    where removed_at is null and category in ${sql(shown())}
     order by posted_at desc limit ${limit}`;
 }
 
 export async function requestsIn(sql: Sql, category: string, limit = 100): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests
-    where removed_at is null and category = ${category}
+    where removed_at is null and category = ${category} and category in ${sql(shown())}
     order by posted_at desc limit ${limit}`;
 }
 
@@ -93,6 +97,7 @@ export async function categoryCounts(sql: Sql, now = new Date()): Promise<Catego
                          and posted_at >= ${now}::timestamptz - interval '14 days')::text as previous
     from requests
     where removed_at is null and posted_at >= ${now}::timestamptz - interval '14 days'
+      and category in ${sql(shown())}
     group by category`;
   return rows.map((row) => ({
     category: row.category,

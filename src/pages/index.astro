@@ -6,6 +6,7 @@ import { categoryCounts, lastRunAt, latestRequests } from "@/db/queries.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { formatAge, platforms, toCard, toTiles } from "@/lib/present";
+import { servicesEnabled } from "@/sort/categories.ts";
 
 const sql = db();
 const now = new Date();
@@ -40,8 +41,9 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
         People asking what to buy, right now.
       </h1>
       <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-secondary-foreground">
-        Public posts where someone asks which product to buy or whom to hire, from software and
-        web designers to car seats. Sorted by category. Refreshed every hour.
+        {servicesEnabled
+          ? "Public posts where someone asks which product to buy or whom to hire, from software and web designers to car seats. Sorted by category. Refreshed every hour."
+          : "Public posts where someone asks which product to use or buy, from software to car seats. Sorted by category. Refreshed every hour."}
       </p>
       <div class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[0.9375rem] text-secondary-foreground">
         {updated && (

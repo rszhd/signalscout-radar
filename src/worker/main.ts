@@ -13,6 +13,7 @@ import {
 } from "@signalscout/engine";
 import { z } from "zod";
 import { connect } from "../db/client.ts";
+import { servicesEnabled } from "../sort/categories.ts";
 import { createSorter } from "../sort/categorize.ts";
 import { run, type SearchPlan } from "./run.ts";
 
@@ -38,9 +39,9 @@ const sort = createSorter(aiConfigFromEnvironment(aiEnvSchema.parse(process.env)
 
 /**
  * Software first, because the first audience is people who build software:
- * software subreddits and X together get 60% of each run, the subreddits
- * where people hire a service 10% (US-429), the goods subreddits 20%, the
- * Reddit keyword search 10%. What a plan leaves unspent
+ * software subreddits and X together get 60% of each run, the goods
+ * subreddits 30%, the Reddit keyword search 10%. With services on (US-429),
+ * the subreddits where people hire get 10% of that 30%. What a plan leaves unspent
  * passes to the plans after it. Before shares, the money ran out in list order
  * and one production run kept 292 goods requests and 1 software request.
  *
@@ -67,6 +68,21 @@ const subreddits = {
   everyHours: 3,
   limit: 25,
   phrases: [],
+};
+
+/**
+ * Where people hire a business service (US-429). About three posts in four
+ * offer work instead, and those are refused before the model, for free. Off
+ * while `servicesEnabled` is false; its 10% then goes to the goods subreddits.
+ */
+const servicesPlan: SearchPlan = {
+  platform: "reddit",
+  source: reddit,
+  apiKey: redditKey,
+  share: 0.1,
+  ...subreddits,
+  channels: ["forhire", "hiring", "slavelabour", "HireaWriter", "DesignJobs"],
+  ...redditPrices,
 };
 
 const plans: SearchPlan[] = [
@@ -114,22 +130,13 @@ const plans: SearchPlan[] = [
     worstSearchMicros: 20 * 200,
     unitMicros: 200,
   },
-  {
-    // Where people hire a business service (US-429). About three posts in four
-    // offer work instead, and those are refused before the model, for free.
-    platform: "reddit",
-    source: reddit,
-    apiKey: redditKey,
-    share: 0.1,
-    ...subreddits,
-    channels: ["forhire", "hiring", "slavelabour", "HireaWriter", "DesignJobs"],
-    ...redditPrices,
-  },
+
+  ...(servicesEnabled ? [servicesPlan] : []),
   {
     platform: "reddit",
     source: reddit,
     apiKey: redditKey,
-    share: 0.2,
+    share: servicesEnabled ? 0.2 : 0.3,
     ...subreddits,
     channels: [
       "SuggestALaptop",
