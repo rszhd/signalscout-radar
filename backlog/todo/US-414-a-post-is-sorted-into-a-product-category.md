@@ -27,13 +27,13 @@ be worth indexing. A post that fits none is `other` and is not shown.
 
 ## Acceptance
 
-- [ ] The call returns `{ asksForProduct: boolean, category: <closed list>,
+- [x] The call returns `{ asksForProduct: boolean, category: <closed list>,
       wants: string }` and reports its `ModelCall` cost. `wants` is one line
       in plain words — what the person asks for — and the page shows it under
       the excerpt (the mockup's *Wants:* line)
-- [ ] Measured on the US-413 fixtures against the hand marks: the Log gives
+- [x] Measured on the US-413 fixtures against the hand marks: the Log gives
       agreement on `asksForProduct`, and the share of posts put in `other`
-- [ ] The Log gives the cost per post, so US-415's cap is set from a number
+- [x] The Log gives the cost per post, so US-415's cap is set from a number
 
 ## Notes
 
@@ -42,3 +42,16 @@ be worth indexing. A post that fits none is `other` and is not shown.
   list written in advance.
 
 ## Log
+- 2026-09-25T23:29+08:00 — `src/sort/`: a free phrase filter (`phrases.ts`), 26 categories
+  drawn from the US-413 requests (`categories.ts`), and one
+  `generateStructured` call (`categorize.ts`). Books, films and music are
+  not requests: they help no SignalScout customer, and the prompt says so.
+  `scripts/sort-fixtures.ts` on the US-413 X and Reddit fixtures, with the
+  cloud's `deepseek-flash`: 39 calls, $0.011 estimated, about $0.0003 a
+  call. On the 36 items the filter kept, the model agrees with the hand
+  marks on 34. The two others: a custom-hat maker (model: a service, not a
+  product — fair) and "which draft model for speculative decoding" (model:
+  a request — right; the hand mark missed it). One request went to `other`
+  (a microphone, a chair and lighting in one post). The `wants` lines read
+  well, for example "Stackable heavy-duty plastic tool chest with multiple
+  4”/100mm+ deep drawers".
