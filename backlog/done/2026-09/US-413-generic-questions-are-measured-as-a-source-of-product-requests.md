@@ -101,3 +101,11 @@ The measurement decides how many queries and how many runs a day fit in it.
   asked for the six platforms; this result goes to the owner before
   US-415 drops four of them. Phrases for X: the four above that found
   requests.
+
+- 2026-09-26T02:36+08:00 — **Correction: Instagram's $0.63 above is an engine
+  estimate five times too high.** The engine counts a SocialCrawl comment page
+  at 25 credits instead of 5 (signalscout-open BUG-427); by the provider's
+  price list the Instagram part cost about $0.15. And "no comment came back"
+  was the connector, not Instagram: it drops every comment because the
+  provider now sends `post_id` as the reel's shortcode (BUG-426). US-425 in
+  signalscout-open read the same reels' comments at three providers.

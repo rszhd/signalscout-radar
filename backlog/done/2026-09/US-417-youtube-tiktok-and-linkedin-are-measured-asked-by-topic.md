@@ -65,3 +65,11 @@ Instagram is not measured again: US-413 paid $0.63 for no comment at all.
   1,400 from the good subreddits. YouTube may come back later with a small
   share and software-comparison topics only — three of its seven strong
   requests came from those.
+
+- 2026-09-26T02:36+08:00 — **Correction: Instagram's $0.63 above is an engine
+  estimate five times too high.** The engine counts a SocialCrawl comment page
+  at 25 credits instead of 5 (signalscout-open BUG-427); by the provider's
+  price list the Instagram part cost about $0.15. And "no comment came back"
+  was the connector, not Instagram: it drops every comment because the
+  provider now sends `post_id` as the reel's shortcode (BUG-426). US-425 in
+  signalscout-open read the same reels' comments at three providers.
