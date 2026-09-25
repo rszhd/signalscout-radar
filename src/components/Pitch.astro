@@ -16,8 +16,8 @@ const { topic, campaign = "home" } = Astro.props;
 ---
 
 <p class="mt-10 border-t pt-6 text-[0.9375rem] leading-relaxed text-muted-foreground">
-  Radar runs on the open-source engine of
-  <a href={signalscoutUrl("pitch", campaign)} class="font-semibold text-foreground hover:underline">SignalScout</a>.
-  {topic ? `Sell something in ${topic}?` : "Sell something people ask about here?"}
+  Radar runs on the open-source engine of{" "}
+  <a href={signalscoutUrl("pitch", campaign)} class="font-semibold text-foreground hover:underline">SignalScout</a>.{" "}
+  {topic ? `Sell something in ${topic}?` : "Sell something people ask about here?"}{" "}
   SignalScout can watch for the posts about your product.
 </p>

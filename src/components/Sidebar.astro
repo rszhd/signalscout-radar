@@ -1,0 +1,76 @@
+---
+/**
+ * The home page's side column: what moved this week, and a feed to follow.
+ * Information, not a pitch. "Rising" needs a week before to compare with, so
+ * until any category has one (five requests or more), it shows the busiest.
+ */
+import type { CategoryTile } from "@/lib/present";
+
+interface Props {
+  tiles: CategoryTile[];
+}
+
+const { tiles } = Astro.props;
+const rising = tiles
+  .filter((tile) => tile.trend !== null && tile.trend > 0)
+  .sort((a, b) => (b.trend ?? 0) - (a.trend ?? 0))
+  .slice(0, 5);
+const busiest = [...tiles].sort((a, b) => b.week - a.week).slice(0, 5);
+const showRising = rising.length > 0;
+const top = showRising ? rising : busiest;
+---
+
+<aside class="flex flex-col gap-8">
+  {
+    top.length > 0 && (
+      <section>
+        <h2 class="mb-3 px-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">
+          {showRising ? "Rising this week" : "Busiest this week"}
+        </h2>
+        <ol class="flex flex-col gap-1">
+          {top.map((tile) => (
+            <li>
+              <a
+                href={`/c/${tile.slug}`}
+                class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-[0.9375rem] hover:bg-brand-soft/60"
+              >
+                <span class="font-semibold text-foreground">{tile.name}</span>
+                <span class:list={["tabular-nums", showRising ? "text-success" : "text-secondary-foreground"]}>
+                  {showRising ? `+${tile.trend}%` : tile.week}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )
+  }
+
+  <section>
+    <h2 class="mb-1 px-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">
+      Follow by RSS
+    </h2>
+    <p class="mb-3 px-3 text-[0.875rem] text-muted-foreground">New requests in your reader, every hour.</p>
+    <ul class="flex flex-col gap-1">
+      <li>
+        <a href="/rss.xml" class="flex items-center gap-2 rounded-lg px-3 py-2 text-[0.9375rem] hover:bg-brand-soft/60">
+          <svg viewBox="0 0 24 24" class="size-4 shrink-0 text-[#e8710a]" aria-hidden="true"><path fill="currentColor" d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7zm2 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></svg>
+          <span class="font-semibold text-foreground">All requests</span>
+        </a>
+      </li>
+      {
+        busiest.map((tile) => (
+          <li>
+            <a
+              href={`/c/${tile.slug}/rss.xml`}
+              class="flex items-center gap-2 rounded-lg px-3 py-2 text-[0.9375rem] hover:bg-brand-soft/60"
+            >
+              <svg viewBox="0 0 24 24" class="size-4 shrink-0 text-[#e8710a]" aria-hidden="true"><path fill="currentColor" d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7zm2 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></svg>
+              <span class="text-secondary-foreground">{tile.name}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</aside>
