@@ -12,7 +12,7 @@
  * measured, not guessed.
  */
 const requestPhrase =
-  /(recommend|suggestion|alternative to|what (app|tool|software|device|do you (guys |all )?use)|which (one|\w+) (should|do) i (buy|get)|looking for (a|an|some)?\s?\w*\s?(app|tool|recommendation)|any (good )?(app|tool)s? for|anyone know (a|of|any)|worth (it|buying))/i;
+  /(recommend|suggestion|alternatives? (to|for)|what (app|tool|software|device|platform|service|do you (guys |all )?use)|which (one|\w+) (should|do) i (buy|get|use)|looking for (a|an|some)?\s?\w*\s?(app|tool|software|recommendation)|any (good )?(app|tool|software)s? (for|that)|is there (an? )?(app|tool|software|plugin|extension|service)|anyone know (a|of|any)|worth (it|buying))/i;
 
 export function readsLikeRequest(text: string): boolean {
   return text.includes("?") && requestPhrase.test(text);

@@ -89,7 +89,21 @@ const plans: SearchPlan[] = [
     source: registry.get("x", "socialdata"),
     apiKey: env.SOCIALDATA_API_KEY,
     share: 0.4,
-    phrases: ["looking for recommendations", "what do you use", "any suggestions for", "can anyone recommend"],
+    // The four measured in US-413, and six aimed at software, which is the
+    // first audience; `pnpm phrases` says after a day which ones pay. Each run
+    // starts at a different phrase, so all of them get their turn.
+    phrases: [
+      "looking for recommendations",
+      "what do you use",
+      "any suggestions for",
+      "can anyone recommend",
+      "is there an app",
+      "is there a tool",
+      "what software do you",
+      "what app do you",
+      "any alternatives to",
+      "recommend a tool",
+    ],
     maxPages: 10,
     limit: 20,
     worstSearchMicros: 20 * 200,

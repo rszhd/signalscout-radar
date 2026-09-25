@@ -164,10 +164,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
       planStart = spent();
       planAllowance = plan.share === undefined ? runCap : runCap * plan.share + carried;
       const since = new Date(start.getTime() - (plan.lookBackMs ?? options.lookBackMs));
-      const inputs = [
-        ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
-        ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
-      ];
+      const inputs = rotate(
+        [
+          ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
+          ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
+        ],
+        Math.floor(start.getTime() / (60 * 60 * 1000)),
+      );
       inputs: for (const input of inputs) {
         const { text } = input;
         phrase = { platform: plan.platform, text, ...blank() };
@@ -279,6 +282,18 @@ async function freshPosts(sql: Sql, platform: string, posts: readonly CandidateP
   const unique = [...new Map(posts.map((post) => [post.externalId, post])).values()];
   const seen = await alreadySeen(sql, platform, unique.map((post) => post.externalId));
   return unique.filter((post) => !seen.has(post.externalId));
+}
+
+/**
+ * The list, started at a different place each hour. A plan's share often buys
+ * fewer inputs than the plan holds — X's share of one run pays for about four
+ * of its ten phrases — and without this the same four would run every hour
+ * and the rest never.
+ */
+export function rotate<T>(items: readonly T[], hour: number): T[] {
+  if (items.length === 0) return [];
+  const offset = hour % items.length;
+  return [...items.slice(offset), ...items.slice(0, offset)];
 }
 
 function utcDayFraction(at: Date): number {

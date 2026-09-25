@@ -302,3 +302,13 @@ describe("plan shares", () => {
     expect(searched).toEqual(["busy", "busy"]);
   });
 });
+
+describe("rotate", () => {
+  it("starts the list at a different place each hour, and keeps every item", async () => {
+    const { rotate } = await import("./run.ts");
+    expect(rotate(["a", "b", "c"], 0)).toEqual(["a", "b", "c"]);
+    expect(rotate(["a", "b", "c"], 1)).toEqual(["b", "c", "a"]);
+    expect(rotate(["a", "b", "c"], 5)).toEqual(["c", "a", "b"]);
+    expect(rotate([], 3)).toEqual([]);
+  });
+});
