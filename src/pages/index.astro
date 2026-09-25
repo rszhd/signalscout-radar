@@ -1,0 +1,72 @@
+---
+import { CategoryList } from "@/components/CategoryList";
+import { Feed } from "@/components/Feed";
+import Pitch from "@/components/Pitch.astro";
+import { categories, platforms, requests } from "@/data/mock";
+import Layout from "@/layouts/Layout.astro";
+
+const total = categories.reduce((sum, category) => sum + category.week, 0);
+const software = categories.filter((category) => category.kind === "software");
+const goods = categories.filter((category) => category.kind === "goods");
+---
+
+<Layout
+  title="SignalScout Radar: people asking what to buy, right now"
+  description="Public posts from Reddit, X, LinkedIn, YouTube, TikTok and Instagram where someone asks for a product, sorted by category and refreshed every few hours."
+>
+  <section class="relative overflow-hidden border-b bg-[radial-gradient(60%_80%_at_15%_20%,#e8f0fe_0%,transparent_60%),radial-gradient(50%_70%_at_90%_0%,#f3ecfd_0%,transparent_60%)]">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(#dadce0_1px,transparent_1px)] [background-size:22px_22px] opacity-50"></div>
+    <div class="relative mx-auto max-w-[1240px] px-4 py-16 text-center sm:px-8 sm:py-20">
+      <p class="text-[0.8125rem] font-semibold tracking-wider text-primary uppercase">
+        <span class="mr-1.5 inline-block size-1.5 -translate-y-px rounded-full bg-primary"></span>
+        SignalScout Radar
+      </p>
+      <h1 class="mx-auto mt-4 max-w-3xl text-4xl leading-[1.08] font-semibold tracking-[-0.035em] sm:text-6xl">
+        People asking what to buy, right now.
+      </h1>
+      <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-secondary-foreground">
+        Public posts where someone asks for a product, from software to standing desks. Sorted by
+        category. Refreshed every few hours.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[0.9375rem] text-secondary-foreground">
+        <span class="inline-flex items-center gap-2">
+          <span class="relative flex size-2">
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60"></span>
+            <span class="relative inline-flex size-2 rounded-full bg-success"></span>
+          </span>
+          Updated 12 min ago
+        </span>
+        <span><strong class="font-semibold text-foreground tabular-nums">{total.toLocaleString("en")}</strong> requests this week</span>
+        <span class="inline-flex items-center gap-2">
+          {Object.values(platforms).map((platform) => (
+            <img src={platform.icon} alt={platform.name} title={platform.name} class="size-5 rounded" />
+          ))}
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section id="categories" class="mx-auto max-w-[1240px] scroll-mt-20 px-4 pt-14 sm:px-8">
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-semibold tracking-tight">Categories</h2>
+        <p class="mt-1 text-[0.9375rem] text-muted-foreground">Requests in the last 7 days, and the change from the week before.</p>
+      </div>
+    </div>
+    <h3 class="mt-6 mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Software</h3>
+    <CategoryList categories={software} />
+    <h3 class="mt-6 mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Things people buy</h3>
+    <CategoryList categories={goods} />
+  </section>
+
+  <section id="latest" class="mx-auto grid max-w-[1240px] scroll-mt-20 grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div>
+      <h2 class="mb-1 text-2xl font-semibold tracking-tight">Latest requests</h2>
+      <p class="mb-5 text-[0.9375rem] text-muted-foreground">Newest first. Every post links to the original.</p>
+      <Feed client:load requests={requests} />
+    </div>
+    <div class="lg:sticky lg:top-24 lg:self-start">
+      <Pitch />
+    </div>
+  </section>
+</Layout>

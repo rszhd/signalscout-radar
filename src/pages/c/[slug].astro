@@ -1,0 +1,66 @@
+---
+import { CategoryList } from "@/components/CategoryList";
+import { Feed } from "@/components/Feed";
+import Pitch from "@/components/Pitch.astro";
+import { type Category, categories, requests } from "@/data/mock";
+import Layout from "@/layouts/Layout.astro";
+
+export function getStaticPaths() {
+  return categories.map((category) => ({ params: { slug: category.slug }, props: { category } }));
+}
+
+const { category } = Astro.props as { category: Category };
+const own = requests.filter((request) => request.category === category.slug);
+const related = categories.filter((c) => c.kind === category.kind && c.slug !== category.slug).slice(0, 6);
+const lower = category.name.toLowerCase();
+const up = category.trend >= 0;
+---
+
+<Layout
+  title={`People asking for ${lower} recommendations | SignalScout Radar`}
+  description={`${category.week} public posts this week where someone asks which ${lower} to use or buy. From Reddit, X, LinkedIn, YouTube, TikTok and Instagram.`}
+>
+  <section class="border-b bg-card">
+    <div class="mx-auto max-w-[1240px] px-4 py-10 sm:px-8">
+      <nav class="text-[0.875rem] text-muted-foreground">
+        <a href="/" class="hover:text-foreground">Radar</a>
+        <span class="mx-1.5">/</span>
+        <a href="/#categories" class="hover:text-foreground">{category.kind === "software" ? "Software" : "Things people buy"}</a>
+        <span class="mx-1.5">/</span>
+        <span class="text-foreground">{category.name}</span>
+      </nav>
+      <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">
+        People asking for {lower === "crm" ? "a CRM" : lower}
+      </h1>
+      <div class="mt-5 grid max-w-xl grid-cols-3 gap-3">
+        <div class="rounded-xl border bg-background px-4 py-3">
+          <p class="text-[0.8125rem] text-muted-foreground">Last 7 days</p>
+          <p class="text-2xl font-semibold tabular-nums">{category.week}</p>
+        </div>
+        <div class="rounded-xl border bg-background px-4 py-3">
+          <p class="text-[0.8125rem] text-muted-foreground">Vs. last week</p>
+          <p class:list={["text-2xl font-semibold tabular-nums", up ? "text-success" : "text-muted-foreground"]}>
+            {up ? "+" : "−"}{Math.abs(category.trend)}%
+          </p>
+        </div>
+        <div class="rounded-xl border bg-background px-4 py-3">
+          <p class="text-[0.8125rem] text-muted-foreground">Most active</p>
+          <p class="text-2xl font-semibold">Reddit</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div>
+      <Feed client:load requests={own} showCategory={false} />
+    </div>
+    <div class="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
+      <Pitch topic={lower === "crm" ? "a CRM" : lower} />
+      <div>
+        <h2 class="mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Related</h2>
+        <CategoryList categories={related} compact />
+      </div>
+    </div>
+  </section>
+</Layout>

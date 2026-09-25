@@ -1,0 +1,63 @@
+---
+import "@/styles/globals.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const signalscout = "https://www.signalscout.run";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+  </head>
+  <body class="min-h-screen bg-background text-foreground">
+    <header class="sticky top-0 z-20 border-b bg-card/90 backdrop-blur">
+      <div class="mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-8">
+        <a href="/" class="flex items-center gap-2.5">
+          <img src="/mark.svg" alt="" class="size-7" />
+          <span class="font-semibold tracking-tight">SignalScout</span>
+          <span class="rounded-full bg-brand-soft px-2 py-0.5 text-[0.75rem] font-semibold tracking-wide text-primary uppercase">
+            Radar
+          </span>
+        </a>
+        <nav class="hidden items-center gap-7 text-[0.9375rem] text-secondary-foreground md:flex">
+          <a href="/#categories" class="hover:text-foreground">Categories</a>
+          <a href="/#latest" class="hover:text-foreground">Latest</a>
+          <a href="/about" class="hover:text-foreground">How it works</a>
+        </nav>
+        <a
+          href={signalscout}
+          class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-[0.9375rem] font-semibold whitespace-nowrap text-primary-foreground hover:bg-[#0842a0]"
+        >
+          <span class="sm:hidden">Try free</span><span class="hidden sm:inline">Try SignalScout</span>
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="mt-20 border-t bg-card">
+      <div class="mx-auto flex max-w-[1240px] flex-col gap-4 px-4 py-10 text-[0.875rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <p class="max-w-xl">
+          Public posts, shown as a short excerpt and a link. No names, no copies. A deleted post
+          leaves Radar on the next refresh. <a href="/about#remove" class="font-semibold text-primary hover:underline">Ask us to remove a post</a>.
+        </p>
+        <p>
+          Made with <a href={signalscout} class="font-semibold text-foreground hover:underline">SignalScout</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
