@@ -26,6 +26,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 <Layout
   title="SignalScout Radar: people asking what to buy, right now"
   description="Public posts from Reddit and X where someone asks which product to use or buy, sorted by category and refreshed every hour."
+  feed={{ title: "People asking what to buy", path: "/rss.xml" }}
 >
   <section class="relative overflow-hidden border-b bg-[radial-gradient(60%_80%_at_15%_20%,#e8f0fe_0%,transparent_60%),radial-gradient(50%_70%_at_90%_0%,#f3ecfd_0%,transparent_60%)]">
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(#dadce0_1px,transparent_1px)] [background-size:22px_22px] opacity-50"></div>

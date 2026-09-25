@@ -44,6 +44,8 @@ services:
     environment:
       DATABASE_URL: postgres://radar:${POSTGRES_PASSWORD}@postgres:5432/radar
       RADAR_CONTACT: ${RADAR_CONTACT:-}
+      # The landing's Google Analytics property; public, in every page it serves.
+      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-G-P0X68V59SC}
     depends_on:
       migrate:
         condition: service_completed_successfully

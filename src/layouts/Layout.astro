@@ -1,13 +1,25 @@
 ---
 import "@/styles/globals.css";
 
+import { signalscoutUrl, siteUrl } from "@/lib/links";
+
 interface Props {
   title: string;
   description: string;
+  /** The share card, a path under public/: /og/home.png, /og/c/<slug>.png. */
+  image?: string;
+  /** A feed for this page, shown to readers that look for one. */
+  feed?: { title: string; path: string };
+  /** For the UTM tag on links to SignalScout: the category, or "home". */
+  campaign?: string;
 }
 
-const { title, description } = Astro.props;
-const signalscout = "https://www.signalscout.run";
+const { title, description, image = "/og/home.png", feed, campaign = "home" } = Astro.props;
+const canonical = new URL(Astro.url.pathname, siteUrl).toString();
+const imageUrl = new URL(image, siteUrl).toString();
+// Public: it is in every page the landing serves. One property for both
+// sites, so a visitor who goes from Radar to the landing is one journey.
+const analyticsId = process.env.GA_MEASUREMENT_ID;
 ---
 
 <!doctype html>
@@ -20,6 +32,37 @@ const signalscout = "https://www.signalscout.run";
     <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {feed && <link rel="alternate" type="application/rss+xml" title={feed.title} href={feed.path} />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SignalScout Radar" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@signalscoutrun" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
+
+    {
+      analyticsId && (
+        <Fragment>
+          <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${analyticsId}`} />
+          <script is:inline define:vars={{ analyticsId }}>
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function gtag() { window.dataLayer.push(arguments); };
+            window.gtag("js", new Date());
+            window.gtag("config", analyticsId);
+          </script>
+        </Fragment>
+      )
+    }
   </head>
   <body class="min-h-screen bg-background text-foreground">
     <header class="sticky top-0 z-20 border-b bg-card/90 backdrop-blur">
@@ -37,7 +80,7 @@ const signalscout = "https://www.signalscout.run";
           <a href="/about" class="hover:text-foreground">How it works</a>
         </nav>
         <a
-          href={signalscout}
+          href={signalscoutUrl("header", campaign)}
           class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-[0.9375rem] font-semibold whitespace-nowrap text-primary-foreground hover:bg-[#0842a0]"
         >
           <span class="sm:hidden">Try free</span><span class="hidden sm:inline">Try SignalScout</span>
@@ -57,7 +100,7 @@ const signalscout = "https://www.signalscout.run";
           30 days. <a href="/about#remove" class="font-semibold text-primary hover:underline">Ask us to remove a post</a>.
         </p>
         <p>
-          Made with <a href={signalscout} class="font-semibold text-foreground hover:underline">SignalScout</a>
+          Made with <a href={signalscoutUrl("footer", campaign)} class="font-semibold text-foreground hover:underline">SignalScout</a>
         </p>
       </div>
     </footer>

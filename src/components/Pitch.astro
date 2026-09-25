@@ -1,10 +1,14 @@
 ---
 /** The one line to SignalScout at the end of a page or in the side column. */
+import { signalscoutUrl } from "@/lib/links";
+
 interface Props {
   topic?: string;
+  /** The category slug, for the UTM tag. */
+  campaign?: string;
 }
 
-const { topic } = Astro.props;
+const { topic, campaign = "home" } = Astro.props;
 ---
 
 <aside class="rounded-2xl border bg-card p-6 shadow-[0_1px_2px_rgb(20_24_21/4%),0_18px_44px_rgb(20_24_21/8%)]">
@@ -20,7 +24,7 @@ const { topic } = Astro.props;
     why it matched.
   </p>
   <a
-    href="https://www.signalscout.run"
+    href={signalscoutUrl("pitch", campaign)}
     class="mt-5 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-[0.9375rem] font-semibold text-primary-foreground hover:bg-[#0842a0]"
   >
     Start free <span aria-hidden="true">→</span>

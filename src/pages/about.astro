@@ -1,11 +1,13 @@
 ---
 import Layout from "@/layouts/Layout.astro";
+import { signalscoutUrl } from "@/lib/links";
 import { contactUrl } from "@/lib/present";
 ---
 
 <Layout
   title="How SignalScout Radar works"
   description="How Radar finds public posts where people ask which product to buy, what it shows, and how to have a post removed."
+  image="/og/about.png"
 >
   <article class="mx-auto max-w-[760px] px-4 pt-12 sm:px-8">
     <p class="text-[0.8125rem] font-semibold tracking-wider text-primary uppercase">How it works</p>
@@ -23,7 +25,7 @@ import { contactUrl } from "@/lib/present";
       </p>
       <p>
         Radar is built on the open-source engine of
-        <a href="https://www.signalscout.run" class="font-semibold text-primary hover:underline">SignalScout</a>.
+        <a href={signalscoutUrl("about")} class="font-semibold text-primary hover:underline">SignalScout</a>.
         SignalScout does the same job for one product: it finds only the posts that fit what you sell,
         scores them, and explains why.
       </p>

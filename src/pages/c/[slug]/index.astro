@@ -31,6 +31,9 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 <Layout
   title={`People asking for ${lower} recommendations | SignalScout Radar`}
   description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} product to use or buy. From Reddit and X, refreshed every hour.`}
+  image={`/og/c/${category.slug}.png`}
+  feed={{ title: `People asking for ${name}`, path: `/c/${category.slug}/rss.xml` }}
+  campaign={category.slug}
 >
   <section class="border-b bg-card">
     <div class="mx-auto max-w-[1240px] px-4 py-10 sm:px-8">
@@ -41,9 +44,18 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
         <span class="mx-1.5">/</span>
         <span class="text-foreground">{name}</span>
       </nav>
-      <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">
-        People asking for {name}
-      </h1>
+      <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
+        <h1 class="text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">
+          People asking for {name}
+        </h1>
+        <a
+          href={`/c/${category.slug}/rss.xml`}
+          class="inline-flex h-9 items-center gap-2 rounded-full border bg-background px-4 text-[0.875rem] font-semibold text-secondary-foreground hover:border-brand-tint hover:text-primary"
+        >
+          <svg viewBox="0 0 24 24" class="size-4" aria-hidden="true"><path fill="currentColor" d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7zm2 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></svg>
+          Follow by RSS
+        </a>
+      </div>
       <p class="mt-3 max-w-2xl text-[0.9375rem] text-secondary-foreground">Covers {category.covers}.</p>
       <div class="mt-5 grid max-w-xl grid-cols-3 gap-3">
         <div class="rounded-xl border bg-background px-4 py-3">
@@ -73,7 +85,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
       <Feed client:load requests={cards} showCategory={false} />
     </div>
     <div class="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
-      <Pitch topic={name} />
+      <Pitch topic={name} campaign={category.slug} />
       {related.length > 0 && (
         <div>
           <h2 class="mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Related</h2>
