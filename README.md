@@ -19,8 +19,9 @@ only the posts about *your* product, that is what
 
 ## Limits it keeps
 
-- **$2 a day**, providers and models together. The worker checks the price of
-  every call before it makes it, and the day's spend is read from the database.
+- **A daily spending cap** (`RADAR_DAILY_CAP_USD`), providers and models
+  together. The worker checks the price of every call before it makes it, and
+  the day's spend is read from the database.
 - **An excerpt and a link.** No username, no handle, no copied post, nothing
   older than 30 days.
 - **Taken down on request.** A removed post is marked, not deleted, so the next
