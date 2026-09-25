@@ -38,8 +38,9 @@ const sort = createSorter(aiConfigFromEnvironment(aiEnvSchema.parse(process.env)
 
 /**
  * Software first, because the first audience is people who build software:
- * software subreddits and X together get 60% of each run, the goods
- * subreddits 30%, the Reddit keyword search 10%. What a plan leaves unspent
+ * software subreddits and X together get 60% of each run, the subreddits
+ * where people hire a service 10% (US-429), the goods subreddits 20%, the
+ * Reddit keyword search 10%. What a plan leaves unspent
  * passes to the plans after it. Before shares, the money ran out in list order
  * and one production run kept 292 goods requests and 1 software request.
  *
@@ -114,10 +115,21 @@ const plans: SearchPlan[] = [
     unitMicros: 200,
   },
   {
+    // Where people hire a business service (US-429). About three posts in four
+    // offer work instead, and those are refused before the model, for free.
     platform: "reddit",
     source: reddit,
     apiKey: redditKey,
-    share: 0.3,
+    share: 0.1,
+    ...subreddits,
+    channels: ["forhire", "hiring", "slavelabour", "HireaWriter", "DesignJobs"],
+    ...redditPrices,
+  },
+  {
+    platform: "reddit",
+    source: reddit,
+    apiKey: redditKey,
+    share: 0.2,
     ...subreddits,
     channels: [
       "SuggestALaptop",

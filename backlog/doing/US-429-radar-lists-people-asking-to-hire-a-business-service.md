@@ -42,7 +42,7 @@ names, so excerpts must drop them as they drop @handles.
       X; every request the model keeps is read by hand, and a sample of the
       rest; the Log gives requests, cost and cost per request per input
 - [x] Excerpts drop emails, phone numbers and chat handles; a test proves it
-- [ ] The inputs that pay are added to the worker with a share the Log
+- [x] The inputs that pay are added to the worker with a share the Log
       justifies, and the page shows a "Services" group
 - [ ] Deployed, and one production run's services requests read by hand
 
@@ -91,4 +91,11 @@ names, so excerpts must drop them as they drop @handles.
   production rather than tuned on one case.
 
   Keyword searches found 2 service requests in 162 posts: left out.
+
+- 2026-09-26T03:43+08:00 — The five hiring subreddits go into the worker as their own plan,
+  read every third hour with the other subreddits, one page each. Shares,
+  agreed with the owner: software subreddits 20%, X 40%, services 10%,
+  goods subreddits 20% (from 30%, a share rarely used up since the reads
+  went to every third hour), Reddit keyword search 10%. Expected cost about
+  $0.15 a day. r/webdev and the general business subreddits are left out.
 
