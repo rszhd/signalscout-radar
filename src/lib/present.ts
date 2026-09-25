@@ -50,7 +50,7 @@ export function toCard(row: RequestRow, now = new Date()): Card {
 export interface CategoryTile {
   slug: string;
   name: string;
-  kind: "software" | "goods";
+  kind: "software" | "services" | "goods";
   week: number;
   /** Per cent against the week before; null while the week before is too small to compare. */
   trend: number | null;

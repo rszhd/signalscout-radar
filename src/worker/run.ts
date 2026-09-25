@@ -14,7 +14,7 @@ import type { CandidatePost, ModelCall, SocialSource } from "@signalscout/engine
 import type { Sql } from "../db/client.ts";
 import { alreadySeen, forgetOld, markSeen, saveRequest, spentToday } from "../db/queries.ts";
 import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
-import { readsLikeRequest } from "../sort/phrases.ts";
+import { offersWork, readsLikeRequest } from "../sort/phrases.ts";
 
 export interface SearchPlan {
   readonly platform: "reddit" | "x";
@@ -102,6 +102,11 @@ export function cleanText(text: string): string {
     .replace(/^(\s*@\w+)+/, "")
     .replace(/(^|[^\w])@\w+/g, "$1someone")
     .replace(/(^|\s)u\/[\w-]+/g, "$1someone")
+    // Hiring posts carry contact details; the page promises no names (US-429).
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]")
+    .replace(/https?:\/\/(t\.me|wa\.me|discord\.gg|discord\.com\/users|calendly\.com)\/\S+/gi, "[contact link]")
+    .replace(/\+?\d[\d\s().-]{8,}\d/g, "[phone]")
+    .replace(/\b(discord|telegram|whatsapp|skype)\s*[:@-]\s*[\w.#]+/gi, "$1: [handle]")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -215,7 +220,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
           const fresh = await freshPosts(sql, plan.platform, result.posts);
           add("fetched", fresh.length);
           const toSort = fresh.filter(
-            (post) => !input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`),
+            (post) =>
+              !offersWork(post.title, post.text) &&
+              (!input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`)),
           );
           // What the filter set aside is handled: it will never be sorted.
           await markSeen(sql, plan.platform, fresh.filter((post) => !toSort.includes(post)).map((post) => post.externalId));
@@ -240,7 +247,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
               const cost = modelMicros(sorted.call);
               add("modelMicros", Number.isNaN(cost) ? worstSortMicros : cost);
               add("sorted", 1);
-              if (sorted.status === "sorted" && sorted.verdict.asksForProduct && sorted.verdict.category !== "other") {
+              if (sorted.status === "sorted" && sorted.verdict.isRequest && sorted.verdict.category !== "other") {
                 await saveRequest(sql, {
                   platform: plan.platform,
                   externalId: post.externalId,

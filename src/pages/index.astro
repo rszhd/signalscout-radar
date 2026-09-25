@@ -16,6 +16,7 @@ const [counts, rows, updated] = await Promise.all([
 ]);
 const tiles = toTiles(counts);
 const software = tiles.filter((tile) => tile.kind === "software");
+const services = tiles.filter((tile) => tile.kind === "services");
 const goods = tiles.filter((tile) => tile.kind === "goods");
 const week = tiles.reduce((sum, tile) => sum + tile.week, 0);
 const cards = rows.map((row) => toCard(row, now));
@@ -39,8 +40,8 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
         People asking what to buy, right now.
       </h1>
       <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-secondary-foreground">
-        Public posts where someone asks which product to use or buy, from software to car seats.
-        Sorted by category. Refreshed every hour.
+        Public posts where someone asks which product to buy or whom to hire, from software and
+        web designers to car seats. Sorted by category. Refreshed every hour.
       </p>
       <div class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[0.9375rem] text-secondary-foreground">
         {updated && (
@@ -70,6 +71,12 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
         <>
           <h3 class="mt-6 mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Software</h3>
           <CategoryList categories={software} />
+        </>
+      )}
+      {services.length > 0 && (
+        <>
+          <h3 class="mt-6 mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Services to hire</h3>
+          <CategoryList categories={services} />
         </>
       )}
       {goods.length > 0 && (

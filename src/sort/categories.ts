@@ -38,6 +38,17 @@ export const categories = [
   { slug: "gaming", name: "Gaming", kind: "goods", covers: "consoles, games, controllers, gaming accessories" },
   { slug: "health", name: "Health & supplements", kind: "goods", covers: "supplements, health devices, sleep aids" },
   { slug: "pets", name: "Pets", kind: "goods", covers: "pet food, pet gear, aquariums" },
+  // Business services: someone to hire for work (US-429). Not a job ad for a
+  // full-time role, and not a local consumer service.
+  { slug: "web-development", name: "Web & app development", kind: "services", covers: "websites, apps, online stores, bug fixes, developers to hire" },
+  { slug: "ai-automation", name: "AI & automation", kind: "services", covers: "chatbots, AI agents, workflow automation, integrations built for you" },
+  { slug: "marketing-services", name: "Marketing, SEO & ads", kind: "services", covers: "SEO, paid ads, social media management, email campaigns, growth agencies" },
+  { slug: "design-services", name: "Design & branding", kind: "services", covers: "logos, UI and UX design, brand identity, illustration, pitch decks" },
+  { slug: "content-services", name: "Writing, video & content", kind: "services", covers: "copywriting, ghostwriting, video editing, translation, content creators" },
+  { slug: "accounting-legal", name: "Accounting & legal", kind: "services", covers: "bookkeepers, accountants, tax advisers, lawyers, company formation" },
+  { slug: "it-services", name: "IT & security services", kind: "services", covers: "IT support, managed services, security audits, compliance, cloud setup" },
+  { slug: "virtual-assistants", name: "Virtual assistants & support", kind: "services", covers: "virtual assistants, data entry, customer support and admin staff" },
+  { slug: "consulting", name: "Consulting & coaching", kind: "services", covers: "business, sales and growth consultants, fractional executives, coaches" },
 ] as const;
 
 export type CategorySlug = (typeof categories)[number]["slug"];

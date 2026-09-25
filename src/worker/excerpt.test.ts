@@ -10,8 +10,9 @@ describe("excerptOf", () => {
     expect(excerptOf("Ask @janedoe or u/someuser which laptop")).toBe("Ask someone or someone which laptop");
   });
 
-  it("keeps an email address whole", () => {
-    expect(excerptOf("mail me at a@b.com")).toBe("mail me at a@b.com");
+  // An email was kept whole until US-429; now it is dropped like any contact.
+  it("drops an email address whole, not as a handle", () => {
+    expect(excerptOf("mail me at a@b.com")).toBe("mail me at [email]");
   });
 
   it("decodes X's entities and drops its short links", () => {
@@ -24,5 +25,17 @@ describe("excerptOf", () => {
     const out = excerptOf("word ".repeat(100));
     expect(out.length).toBeLessThanOrEqual(280);
     expect(out.endsWith("…")).toBe(true);
+  });
+
+  it("drops the contact details a hiring post carries", () => {
+    expect(
+      excerptOf(
+        "Email me at jane.doe@studio.co or call +1 (415) 555-0132, discord: jane#1234, https://t.me/janedoe",
+      ),
+    ).toBe("Email me at [email] or call [phone], discord: [handle], [contact link]");
+  });
+
+  it("keeps a price or a year that is not a phone number", () => {
+    expect(excerptOf("Budget $1,500 for 2026, 3 pages")).toBe("Budget $1,500 for 2026, 3 pages");
   });
 });

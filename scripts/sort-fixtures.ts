@@ -39,10 +39,10 @@ for (const platform of ["reddit", "x"] as const) {
       continue;
     }
     const v = outcome.verdict;
-    if (kept && v.asksForProduct === marked) agree += 1;
-    if (v.asksForProduct && v.category === "other") other += 1;
+    if (kept && v.isRequest === marked) agree += 1;
+    if (v.isRequest && v.category === "other") other += 1;
     rows.push(
-      `${platform} ${index} kept=${kept} hand=${marked} model=${v.asksForProduct} ${v.category} | ${v.wants} | ${text.replace(/\s+/g, " ").slice(0, 80)}`,
+      `${platform} ${index} kept=${kept} hand=${marked} model=${v.isRequest} ${v.category} | ${v.wants} | ${text.replace(/\s+/g, " ").slice(0, 80)}`,
     );
   }
 }

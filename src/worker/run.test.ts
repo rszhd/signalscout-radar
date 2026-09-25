@@ -50,7 +50,7 @@ const call = (micros: number): ModelCall => ({
 
 const yes = async (): Promise<SortOutcome> => ({
   status: "sorted",
-  verdict: { asksForProduct: true, category: "audio", wants: "Headphones for a loud office" },
+  verdict: { isRequest: true, category: "audio", wants: "Headphones for a loud office" },
   call: call(300),
 });
 

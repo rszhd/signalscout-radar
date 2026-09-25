@@ -1,5 +1,6 @@
 /**
- * The paid stage: does this post ask for a product, and which kind? US-414.
+ * The paid stage: does this post ask for a product or a business service, and
+ * which kind? US-414, and US-429 for services.
  *
  * The engine's triage and classifier cannot answer it, because both score a
  * post against one product, and Radar has none. This is one structured call
@@ -16,9 +17,9 @@ import { z } from "zod";
 import { categories, categorySlugs } from "./categories.ts";
 
 export const verdictSchema = z.object({
-  asksForProduct: z
+  isRequest: z
     .boolean()
-    .describe("True only when the author asks which product to use or buy"),
+    .describe("True only when the author asks which product to use or buy, or wants to hire a business service"),
   category: z.enum([...categorySlugs, "other"]).describe("The kind of product, or other"),
   wants: z
     .string()
@@ -38,28 +39,38 @@ export interface PostToSort {
 export function buildSystemPrompt(): string {
   return [
     "You read one public post and decide whether its author asks other people",
-    "which product to use or buy.",
+    "which product to use or buy, or wants to hire someone for business work.",
     "",
     "A PRODUCT is something a person can pick: software, an app, a website to",
     "use, a device, a gadget, gear, clothing, a car. Asking for an alternative",
     "to a product they use counts. Asking whether a product is worth buying",
     "counts.",
     "",
+    "A BUSINESS SERVICE is work someone is hired to do: an agency, a freelancer,",
+    "a developer, a designer, a marketer, a consultant, an accountant, a lawyer,",
+    "a virtual assistant. Asking where to find one, or posting a one-off or",
+    "contract gig, counts.",
+    "",
     "It is NOT a request when the post:",
-    "- asks for a person or a service: a job candidate, a plumber, an agency,",
-    "  a restaurant, a lawyer, a tutor",
+    "- is a job ad for a full-time or permanent role (salary, benefits, a team",
+    "  to join): that is recruiting, not buying",
+    "- offers a service or a product, or promotes one ([For Hire], portfolios)",
+    "- asks for a local consumer service: a plumber, a cleaner, a doctor, a",
+    "  tutor, a restaurant, a shop to visit",
     "- asks for books, films, music, shows or games to watch or read",
-    "- asks for advice, tips or opinions without asking which product",
-    "- sells, advertises or reviews a product",
-    "- only uses the words 'recommend' or 'alternative' in another sense",
+    "- asks for advice, tips or opinions without asking which product or whom",
+    "  to hire",
+    "- only uses the words 'recommend', 'alternative' or 'hire' in another sense",
+    "- asks for anything deceptive or unlawful: fake reviews, fake followers,",
+    "  forged or edited documents, academic work to submit as one's own, spam",
     "",
     "CATEGORIES. Choose the one that fits best, or 'other':",
     ...categories.map((category) => `- ${category.slug}: ${category.covers}`),
     "",
     "WANTS. When it is a request, write what the author asks for in one plain",
     "line, at most 100 characters, with the details that matter: budget, size,",
-    "use, what they want to replace. No name of the author. When it is not a",
-    "request, write an empty string.",
+    "use, deadline, what they want to replace. No name, email, phone number or",
+    "handle of anyone. When it is not a request, write an empty string.",
   ].join("\n");
 }
 

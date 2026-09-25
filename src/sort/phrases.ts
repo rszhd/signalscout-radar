@@ -14,6 +14,26 @@
 const requestPhrase =
   /(recommend|suggestion|alternatives? (to|for)|what (app|tool|software|device|platform|service|do you (guys |all )?use)|which (one|\w+) (should|do) i (buy|get|use)|looking for (a|an|some)?\s?\w*\s?(app|tool|software|recommendation)|any (good )?(app|tool|software)s? (for|that)|is there (an? )?(app|tool|software|plugin|extension|service)|anyone know (a|of|any)|worth (it|buying))/i;
 
+/**
+ * Someone who wants to hire (US-429). A gig or a request for a provider often
+ * has no question mark — "[Hiring] Logo for a bakery, $150" — so these pass
+ * on the phrase alone.
+ */
+const hirePhrase =
+  /(\[hiring\]|\[task\]|looking to hire|want to hire|need to hire|hire (an?|some) ?\w* ?(developer|designer|agency|freelancer|marketer|writer|editor|accountant|bookkeeper|consultant|assistant|va|expert|someone)|(looking for|need|recommend) (an?|some|any) ?\w* ?(developer|designer|agency|freelancer|marketer|copywriter|writer|video editor|accountant|bookkeeper|consultant|virtual assistant|seo|expert)|need someone to (build|make|design|create|fix|help|run|manage|write))/i;
+
+/**
+ * A post that offers work rather than asks for it. In the hiring subreddits
+ * about three posts in four are offers — "[For Hire] Web designer", "[Offer]
+ * Logo design" — and the model refuses every one; this refuses them for free
+ * (US-429).
+ */
+const offerTag = /^\s*[[(]\s*(for hire|offer|hire me|forhire)\s*[\])]/i;
+
+export function offersWork(title: string | undefined, text: string): boolean {
+  return offerTag.test(title ?? "") || offerTag.test(text);
+}
+
 export function readsLikeRequest(text: string): boolean {
-  return text.includes("?") && requestPhrase.test(text);
+  return (text.includes("?") && requestPhrase.test(text)) || hirePhrase.test(text);
 }

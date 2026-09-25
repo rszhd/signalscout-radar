@@ -54,6 +54,15 @@ const examples: Record<string, [string, string]> = {
   gaming: ["A racing game like CarX Street for a handheld", "Is the Overwatch battle pass worth buying?"],
   health: ["Compression sleeves for joint pain", "A sleep tracker without a subscription"],
   pets: ["A quiet filter for a 20-gallon tank", "A GPS tracker for a small dog"],
+  "web-development": ["A developer to move a Shopify store, fixed price", "A simple booking site for a small clinic"],
+  "ai-automation": ["Someone to build a support chatbot on our docs", "Automate invoices from Gmail into QuickBooks"],
+  "marketing-services": ["An agency to run Google Ads for a dental practice", "Technical SEO help after a site migration"],
+  "design-services": ["A logo for a medical spa, about $25", "A designer for a 12-slide pitch deck"],
+  "content-services": ["A B2B SaaS copywriter, $15–25 an hour", "An editor for short-form videos, 10 a week"],
+  "accounting-legal": ["A bookkeeper for 18 rental properties", "A lawyer to set up a US company from abroad"],
+  "it-services": ["A security audit before a SOC 2 report", "IT support for a 10-person office"],
+  "virtual-assistants": ["A part-time VA for inbox and scheduling", "A cold caller for real estate, part-time"],
+  consulting: ["A fractional CMO for a seed-stage startup", "A sales coach for a two-person team"],
 };
 
 interface Card {
@@ -69,7 +78,7 @@ const cards: Card[] = [
     file: "home.png",
     eyebrow: "SignalScout Radar",
     headline: "People asking what to buy, right now.",
-    lede: "Posts from Reddit and X, sorted by category every hour.",
+    lede: "Products to buy and services to hire, from Reddit and X, every hour.",
     asks: ["A simple CRM with follow-up reminders for a 3-person team", "Noise-cancelling headphones for a loud office"],
   },
   {
@@ -81,7 +90,7 @@ const cards: Card[] = [
   },
   ...categories.map((category) => ({
     file: `c/${category.slug}.png`,
-    eyebrow: `Radar · ${category.kind === "software" ? "Software" : "Things people buy"}`,
+    eyebrow: `Radar · ${{ software: "Software", services: "Services to hire", goods: "Things people buy" }[category.kind]}`,
     headline: `People asking for ${category.name}`,
     lede: "Posts from Reddit and X, sorted every hour.",
     asks: examples[category.slug] ?? ["", ""],

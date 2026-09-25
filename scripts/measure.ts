@@ -75,7 +75,7 @@ interface Item {
   text: string;
   postedAt: string;
   /** Filled in by hand: does this ask for a product? */
-  asksForProduct: null;
+  isRequest: null;
 }
 
 const outDir = "fixtures/us-413";
@@ -128,7 +128,7 @@ for (const step of plan) {
           title: post.title,
           text: post.text.slice(0, 600),
           postedAt: post.postedAt.toISOString(),
-          asksForProduct: null,
+          isRequest: null,
         });
       }
       tally.posts = posts.length;
@@ -155,7 +155,7 @@ for (const step of plan) {
             under: (post.title ?? post.text).slice(0, 120),
             text: reply.text.slice(0, 600),
             postedAt: reply.postedAt.toISOString(),
-            asksForProduct: null,
+            isRequest: null,
           });
           tally.comments += 1;
         }

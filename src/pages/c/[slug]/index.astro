@@ -24,6 +24,7 @@ const byPlatform = (["reddit", "x"] as const)
 const busiest = byPlatform[0]?.count ? platforms[byPlatform[0].key].name : "—";
 const name = category.name;
 const lower = name.toLowerCase();
+const kindLabel = { software: "Software", services: "Services to hire", goods: "Things people buy" } as const;
 
 Astro.response.headers.set("Cache-Control", "public, max-age=300");
 ---
@@ -40,7 +41,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
       <nav class="text-[0.875rem] text-muted-foreground">
         <a href="/" class="hover:text-foreground">Radar</a>
         <span class="mx-1.5">/</span>
-        <a href="/#categories" class="hover:text-foreground">{category.kind === "software" ? "Software" : "Things people buy"}</a>
+        <a href="/#categories" class="hover:text-foreground">{kindLabel[category.kind]}</a>
         <span class="mx-1.5">/</span>
         <span class="text-foreground">{name}</span>
       </nav>

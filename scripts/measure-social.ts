@@ -81,7 +81,7 @@ interface Item {
   url: string;
   text: string;
   passesFilter: boolean;
-  model: { asksForProduct: boolean; category: string; wants: string } | null;
+  model: { isRequest: boolean; category: string; wants: string } | null;
 }
 
 let providerMicros = 0;
@@ -154,7 +154,7 @@ for (const step of plan) {
         modelMicros += outcome.call.estimatedCostMicros ?? 2000;
         const model = outcome.status === "sorted" ? outcome.verdict : null;
         const passesFilter = readsLikeRequest(t.text);
-        const request = Boolean(model?.asksForProduct && model.category !== "other");
+        const request = Boolean(model?.isRequest && model.category !== "other");
         if (request) yes += 1;
         if (request && passesFilter) filterYes += 1;
         items.push({ ...t, text: t.text.slice(0, 600), passesFilter, model });
@@ -165,7 +165,7 @@ for (const step of plan) {
 
   writeFileSync(`fixtures/social/${step.platform}.json`, `${JSON.stringify(items, null, 2)}\n`);
   const cost = (spent() - before) / 1e6;
-  const requests = items.filter((i) => i.model?.asksForProduct && i.model.category !== "other").length;
+  const requests = items.filter((i) => i.model?.isRequest && i.model.category !== "other").length;
   summary.push(
     `${step.platform}: ${items.length} items, ${requests} requests by the model, $${cost.toFixed(4)}` +
       (requests ? `, $${(cost / requests).toFixed(4)} per request` : ""),
