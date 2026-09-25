@@ -21,8 +21,18 @@ export interface SearchPlan {
   // Only the search: Radar never reads replies and never checks a key.
   readonly source: Pick<SocialSource, "search">;
   readonly apiKey: string;
+  /** Search phrases. A post they find must pass the free text filter first. */
   readonly phrases: readonly string[];
-  /** Pages per phrase per run, at most. */
+  /**
+   * Subreddits read newest first. A post there skips the text filter: in a
+   * subreddit made for buying advice most posts are requests, and most of
+   * those never say "recommend" — a probe of 8 subreddits found 122 requests
+   * in 193 posts, of which the filter would have kept 35.
+   */
+  readonly channels?: readonly string[];
+  /** How far back this plan looks, when it differs from the run's. */
+  readonly lookBackMs?: number;
+  /** Pages per phrase or subreddit per run, at most. */
   readonly maxPages: number;
   /** Posts asked for per page. */
   readonly limit: number;
@@ -60,6 +70,9 @@ export interface RunResult {
 }
 
 const excerptLength = 280;
+
+/** Model calls in flight at once. */
+const sortConcurrency = 6;
 
 /**
  * The text a page may show. No handle survives, because the page promises no
@@ -132,11 +145,16 @@ export async function run(options: RunOptions): Promise<RunResult> {
   };
 
   let outcome: RunResult["outcome"] = "done";
-  const since = new Date(start.getTime() - options.lookBackMs);
 
   try {
     outer: for (const plan of plans) {
-      for (const text of plan.phrases) {
+      const since = new Date(start.getTime() - (plan.lookBackMs ?? options.lookBackMs));
+      const inputs = [
+        ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
+        ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
+      ];
+      for (const input of inputs) {
+        const { text } = input;
         phrase = { platform: plan.platform, text, ...blank() };
         let cursor: string | undefined;
         for (let page = 0; page < plan.maxPages; page += 1) {
@@ -147,7 +165,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           let result: Awaited<ReturnType<SocialSource["search"]>>;
           try {
             result = await plan.source.search({
-              query: { queries: [text], channels: [], since },
+              query: { queries: input.queries, channels: input.channels, since },
               credentials: { apiKey: plan.apiKey },
               cursor,
               limit: plan.limit,
@@ -166,38 +184,56 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
           const fresh = await freshPosts(sql, plan.platform, result.posts);
           add("fetched", fresh.length);
-          for (const post of fresh) {
-            if (!readsLikeRequest(`${post.title ?? ""} ${post.text}`)) continue;
-            add("filtered", 1);
-            if (!fits(worstSortMicros)) {
+          const toSort = fresh.filter(
+            (post) => !input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`),
+          );
+          // What the filter set aside is handled: it will never be sorted.
+          await markSeen(sql, plan.platform, fresh.filter((post) => !toSort.includes(post)).map((post) => post.externalId));
+          add("filtered", toSort.length);
+
+          // The model is the slow part, so a few calls run at once. Each one in
+          // flight is counted at its worst case before it starts.
+          for (let i = 0; i < toSort.length; i += sortConcurrency) {
+            const affordable = Math.floor((runCap - spent()) / worstSortMicros);
+            const batch = toSort.slice(i, i + Math.min(sortConcurrency, affordable));
+            if (batch.length === 0) {
               outcome = "budget";
               break outer;
             }
-            const sorted = await sort({
-              platform: plan.platform,
-              channel: post.channel,
-              title: post.title,
-              text: post.text,
-            });
-            const cost = modelMicros(sorted.call);
-            add("modelMicros", Number.isNaN(cost) ? worstSortMicros : cost);
-            add("sorted", 1);
-            if (sorted.status === "sorted" && sorted.verdict.asksForProduct && sorted.verdict.category !== "other") {
-              await saveRequest(sql, {
-                platform: plan.platform,
-                externalId: post.externalId,
-                url: post.url,
-                channel: post.channel ?? null,
-                title: post.title ? cleanText(post.title) : null,
-                excerpt: excerptOf(post.text),
-                wants: sorted.verdict.wants,
-                category: sorted.verdict.category,
-                postedAt: post.postedAt,
-                phrase: text,
-              });
-              add("kept", 1);
+            const outcomes = await Promise.all(
+              batch.map((post) =>
+                sort({ platform: plan.platform, channel: post.channel, title: post.title, text: post.text }),
+              ),
+            );
+            for (const [index, sorted] of outcomes.entries()) {
+              const post = batch[index] as CandidatePost;
+              const cost = modelMicros(sorted.call);
+              add("modelMicros", Number.isNaN(cost) ? worstSortMicros : cost);
+              add("sorted", 1);
+              if (sorted.status === "sorted" && sorted.verdict.asksForProduct && sorted.verdict.category !== "other") {
+                await saveRequest(sql, {
+                  platform: plan.platform,
+                  externalId: post.externalId,
+                  url: post.url,
+                  channel: post.channel ?? null,
+                  title: post.title ? cleanText(post.title) : null,
+                  excerpt: excerptOf(post.text),
+                  wants: sorted.verdict.wants,
+                  category: sorted.verdict.category,
+                  postedAt: post.postedAt,
+                  phrase: text,
+                });
+                add("kept", 1);
+              }
             }
+            // Seen only once sorted: a post the budget did not reach stays
+            // unseen, so a later run can still pick it up.
+            await markSeen(sql, plan.platform, batch.map((post) => post.externalId));
             await save();
+            if (batch.length < Math.min(sortConcurrency, toSort.length - i)) {
+              outcome = "budget";
+              break outer;
+            }
           }
 
           if (result.next.status !== "ready") break;
@@ -222,13 +258,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
   return { outcome, ...totals };
 }
 
-/** New posts only, each once, and every one of them recorded as seen. */
+/** New posts only, each once. The caller marks them seen once it has handled them. */
 async function freshPosts(sql: Sql, platform: string, posts: readonly CandidatePost[]) {
   const unique = [...new Map(posts.map((post) => [post.externalId, post])).values()];
   const seen = await alreadySeen(sql, platform, unique.map((post) => post.externalId));
-  const fresh = unique.filter((post) => !seen.has(post.externalId));
-  await markSeen(sql, platform, fresh.map((post) => post.externalId));
-  return fresh;
+  return unique.filter((post) => !seen.has(post.externalId));
 }
 
 function utcDayFraction(at: Date): number {

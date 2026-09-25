@@ -202,3 +202,50 @@ describe("phrase stats", () => {
     expect(request?.phrase).toBe("can anyone recommend");
   });
 });
+
+describe("subreddits", () => {
+  it("sends every new post in a subreddit to the model, and names the subreddit in the stats", async () => {
+    let sorts = 0;
+    const channelSource: SocialSource = {
+      async search(request) {
+        expect(request.query.queries).toEqual([]);
+        expect(request.query.channels).toEqual(["SuggestALaptop"]);
+        // A real request with no request phrase in it: the text filter would drop it.
+        return { posts: [post("Laptop for video editing under $1,500")], unitsConsumed: 1, next: { status: "done" } };
+      },
+    };
+    await run(
+      options({
+        plans: [{ ...plan(channelSource), phrases: [], channels: ["SuggestALaptop"], unitMicros: 1880, worstSearchMicros: 3760 }],
+        sort: async () => {
+          sorts += 1;
+          return yes();
+        },
+      }),
+    );
+
+    expect(sorts).toBe(1);
+    const [stat] = await sql<{ phrase: string; kept: number }[]>`select phrase, kept from phrase_stats`;
+    expect(stat).toEqual({ phrase: "r/SuggestALaptop", kept: 1 });
+  });
+});
+
+describe("budget inside a page", () => {
+  it("leaves the posts it could not afford unseen, for a later run", async () => {
+    // $0.005 left: one search ($0.004) and one sort ($0.001 at worst), not two.
+    await sql`insert into runs (started_at, provider_micros) values (${new Date("2026-09-25T01:00:00Z")}, 1_995_000)`;
+    const a = post("Can anyone recommend headphones?");
+    const b = post("Can anyone recommend a laptop?");
+    const source: SocialSource = {
+      async search() {
+        return { posts: [a, b], unitsConsumed: 20, next: { status: "done" } };
+      },
+    };
+    const result = await run(options({ plans: [plan(source)] }));
+
+    expect(result.outcome).toBe("budget");
+    expect(result.sorted).toBe(1);
+    const seen = await sql<{ external_id: string }[]>`select external_id from seen_posts order by external_id`;
+    expect(seen.map((row) => row.external_id)).toEqual([a.externalId]);
+  });
+});

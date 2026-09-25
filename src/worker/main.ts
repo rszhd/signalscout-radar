@@ -37,11 +37,58 @@ const registry = createSourceRegistry({ definitions: builtInSources, runtime: cr
 const sort = createSorter(aiConfigFromEnvironment(aiEnvSchema.parse(process.env)));
 
 /**
- * X and Reddit only, and on X the four phrases that found requests in US-413.
+ * In order of value, because the day's money runs out in this order: the
+ * subreddits made for buying advice (63% requests in the probe, about $0.0007
+ * each), then X (7%), then the Reddit keyword search (8%).
+ *
  * Prices are the connectors' own (`builtInSources`); the worst case is a full
- * page billed at that price.
+ * page billed at that price. `pnpm phrases` ranks every input by requests per
+ * dollar, so a weak one can be dropped from this list.
  */
+const redditKey = env.SCRAPECREATORS_API_KEY;
+const redditPrices = { unitMicros: 1880, worstSearchMicros: 2 * 1880 };
+
 const plans: SearchPlan[] = [
+  {
+    platform: "reddit",
+    source: registry.get("reddit", "scrapecreators"),
+    apiKey: redditKey,
+    phrases: [],
+    channels: [
+      // Things people buy
+      "SuggestALaptop",
+      "HeadphoneAdvice",
+      "whatcarshouldIbuy",
+      "BuyItForLife",
+      "Cameras",
+      "PickAnAndroidForMe",
+      "buildapcforme",
+      "BudgetAudiophile",
+      "OfficeChairs",
+      "StandingDesk",
+      "ebikes",
+      "homegym",
+      "CampingGear",
+      "VacuumCleaners",
+      "Appliances",
+      "HomeNetworking",
+      "Monitors",
+      "tablets",
+      // Software
+      "androidapps",
+      "iosapps",
+      "productivity",
+      "Notetaking",
+      "selfhosted",
+      "SaaS",
+    ],
+    // A subreddit's first read reaches back a day or two; later reads find
+    // only what is new, because `seen_posts` removes the overlap.
+    lookBackMs: 48 * 60 * 60 * 1000,
+    maxPages: 2,
+    limit: 25,
+    ...redditPrices,
+  },
   {
     platform: "x",
     source: registry.get("x", "socialdata"),
@@ -55,7 +102,7 @@ const plans: SearchPlan[] = [
   {
     platform: "reddit",
     source: registry.get("reddit", "scrapecreators"),
-    apiKey: env.SCRAPECREATORS_API_KEY,
+    apiKey: redditKey,
     phrases: [
       "can anyone recommend",
       "which should I buy",
@@ -66,8 +113,7 @@ const plans: SearchPlan[] = [
     ],
     maxPages: 3,
     limit: 25,
-    worstSearchMicros: 2 * 1880,
-    unitMicros: 1880,
+    ...redditPrices,
   },
 ];
 
