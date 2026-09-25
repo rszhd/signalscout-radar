@@ -249,3 +249,56 @@ describe("budget inside a page", () => {
     expect(seen.map((row) => row.external_id)).toEqual([a.externalId]);
   });
 });
+
+describe("plan shares", () => {
+  it("keeps a first plan inside its share, so the plan after it still runs", async () => {
+    // A run of $0.01 (runsPerDay 1, $0.01 left). The first plan may use 50%.
+    await sql`insert into runs (started_at, provider_micros) values (${new Date("2026-09-25T01:00:00Z")}, 1_990_000)`;
+    const searched: string[] = [];
+    const counting = (name: string): SocialSource => ({
+      async search() {
+        searched.push(name);
+        return { posts: [], unitsConsumed: 20, next: { status: "ready", cursor: "more" } };
+      },
+    });
+    await run(
+      options({
+        plans: [
+          { ...plan(counting("goods")), share: 0.5 },
+          { ...plan(counting("software")), share: 0.5 },
+        ],
+      }),
+    );
+
+    // Each page costs $0.004: the first plan fits one page in its $0.005,
+    // and the second gets its own $0.005 plus the $0.001 left over.
+    expect(searched).toEqual(["goods", "software"]);
+  });
+
+  it("passes what a plan leaves unspent to the plans after it", async () => {
+    await sql`insert into runs (started_at, provider_micros) values (${new Date("2026-09-25T01:00:00Z")}, 1_990_000)`;
+    const searched: string[] = [];
+    const counting = (name: string, pages: number): SocialSource => {
+      let left = pages;
+      return {
+        async search() {
+          searched.push(name);
+          left -= 1;
+          return { posts: [], unitsConsumed: 20, next: left > 0 ? { status: "ready", cursor: "more" } : { status: "done" } };
+        },
+      };
+    };
+    await run(
+      options({
+        plans: [
+          // Uses nothing: no phrases at all.
+          { ...plan(counting("quiet", 0)), phrases: [], share: 0.5 },
+          { ...plan(counting("busy", 10)), share: 0.5 },
+        ],
+      }),
+    );
+
+    // $0.005 of its own and $0.005 passed on: two pages of $0.004.
+    expect(searched).toEqual(["busy", "busy"]);
+  });
+});

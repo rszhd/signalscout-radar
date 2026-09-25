@@ -37,62 +37,58 @@ const registry = createSourceRegistry({ definitions: builtInSources, runtime: cr
 const sort = createSorter(aiConfigFromEnvironment(aiEnvSchema.parse(process.env)));
 
 /**
- * In order of value, because the day's money runs out in this order: the
- * subreddits made for buying advice (63% requests in the probe, about $0.0007
- * each), then X (7%), then the Reddit keyword search (8%).
+ * Software first, because the first audience is people who build software:
+ * software subreddits and X together get 60% of each run, the goods
+ * subreddits 30%, the Reddit keyword search 10%. What a plan leaves unspent
+ * passes to the plans after it. Before shares, the money ran out in list order
+ * and one production run kept 292 goods requests and 1 software request.
+ *
+ * Software subreddits give fewer requests than goods ones: 4-8 in 24 posts
+ * (probe of 2026-09-26), against 20-24 in the laptop and headphone ones. The
+ * weak ones — SaaS, iosapps, ecommerce, macapps, shopify, msp, emailmarketing,
+ * dataengineering, 0-2 in 24 — are left out.
  *
  * Prices are the connectors' own (`builtInSources`); the worst case is a full
  * page billed at that price. `pnpm phrases` ranks every input by requests per
  * dollar, so a weak one can be dropped from this list.
  */
 const redditKey = env.SCRAPECREATORS_API_KEY;
+const reddit = registry.get("reddit", "scrapecreators");
 const redditPrices = { unitMicros: 1880, worstSearchMicros: 2 * 1880 };
+const subreddits = {
+  // A subreddit's first read reaches back a day or two; later reads find only
+  // what is new, because `seen_posts` removes the overlap.
+  lookBackMs: 48 * 60 * 60 * 1000,
+  maxPages: 2,
+  limit: 25,
+  phrases: [],
+};
 
 const plans: SearchPlan[] = [
   {
     platform: "reddit",
-    source: registry.get("reddit", "scrapecreators"),
+    source: reddit,
     apiKey: redditKey,
-    phrases: [],
+    share: 0.2,
+    ...subreddits,
     channels: [
-      // Things people buy
-      "SuggestALaptop",
-      "HeadphoneAdvice",
-      "whatcarshouldIbuy",
-      "BuyItForLife",
-      "Cameras",
-      "PickAnAndroidForMe",
-      "buildapcforme",
-      "BudgetAudiophile",
-      "OfficeChairs",
-      "StandingDesk",
-      "ebikes",
-      "homegym",
-      "CampingGear",
-      "VacuumCleaners",
-      "Appliances",
-      "HomeNetworking",
-      "Monitors",
-      "tablets",
-      // Software
-      "androidapps",
-      "iosapps",
-      "productivity",
-      "Notetaking",
+      "sysadmin",
       "selfhosted",
-      "SaaS",
+      "webdev",
+      "devops",
+      "Notetaking",
+      "CRM",
+      "ProductivityApps",
+      "Bookkeeping",
+      "androidapps",
     ],
-    // A subreddit's first read reaches back a day or two; later reads find
-    // only what is new, because `seen_posts` removes the overlap.
-    lookBackMs: 48 * 60 * 60 * 1000,
-    maxPages: 2,
-    limit: 25,
     ...redditPrices,
   },
   {
     platform: "x",
     source: registry.get("x", "socialdata"),
     apiKey: env.SOCIALDATA_API_KEY,
+    share: 0.4,
     phrases: ["looking for recommendations", "what do you use", "any suggestions for", "can anyone recommend"],
     maxPages: 10,
     limit: 20,
@@ -101,8 +97,37 @@ const plans: SearchPlan[] = [
   },
   {
     platform: "reddit",
-    source: registry.get("reddit", "scrapecreators"),
+    source: reddit,
     apiKey: redditKey,
+    share: 0.3,
+    ...subreddits,
+    channels: [
+      "SuggestALaptop",
+      "HeadphoneAdvice",
+      "PickAnAndroidForMe",
+      "whatcarshouldIbuy",
+      "buildapcforme",
+      "BuyItForLife",
+      "VacuumCleaners",
+      "OfficeChairs",
+      "BudgetAudiophile",
+      "Cameras",
+      "ebikes",
+      "CampingGear",
+      "Appliances",
+      "StandingDesk",
+      "HomeNetworking",
+      "homegym",
+      "Monitors",
+      "tablets",
+    ],
+    ...redditPrices,
+  },
+  {
+    platform: "reddit",
+    source: reddit,
+    apiKey: redditKey,
+    share: 0.1,
     phrases: [
       "can anyone recommend",
       "which should I buy",

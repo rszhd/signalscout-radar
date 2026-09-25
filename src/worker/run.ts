@@ -30,6 +30,13 @@ export interface SearchPlan {
    * in 193 posts, of which the filter would have kept 35.
    */
   readonly channels?: readonly string[];
+  /**
+   * This plan's part of each run's money, from 0 to 1. What a plan leaves
+   * unspent passes to the plans after it. Without shares the money simply runs
+   * out in plan order, and on 2026-09-26 that gave the goods subreddits 292 of
+   * a run's 293 requests while software was never reached.
+   */
+  readonly share?: number;
   /** How far back this plan looks, when it differs from the run's. */
   readonly lookBackMs?: number;
   /** Pages per phrase or subreddit per run, at most. */
@@ -127,7 +134,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
     phrase[field] += amount;
   };
   const spent = () => totals.providerMicros + totals.modelMicros;
-  const fits = (micros: number) => spent() + micros <= runCap;
+  // The plan being run may spend up to its allowance: its share of the run,
+  // plus whatever the plans before it left.
+  let planStart = 0;
+  let planAllowance = runCap;
+  const planLeft = () => Math.min(runCap - spent(), planAllowance - (spent() - planStart));
+  const fits = (micros: number) => micros <= planLeft();
   const save = async () => {
     await sql`
       update runs set provider_micros = ${Math.round(totals.providerMicros)},
@@ -147,20 +159,23 @@ export async function run(options: RunOptions): Promise<RunResult> {
   let outcome: RunResult["outcome"] = "done";
 
   try {
-    outer: for (const plan of plans) {
+    let carried = 0;
+    for (const plan of plans) {
+      planStart = spent();
+      planAllowance = plan.share === undefined ? runCap : runCap * plan.share + carried;
       const since = new Date(start.getTime() - (plan.lookBackMs ?? options.lookBackMs));
       const inputs = [
         ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
         ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
       ];
-      for (const input of inputs) {
+      inputs: for (const input of inputs) {
         const { text } = input;
         phrase = { platform: plan.platform, text, ...blank() };
         let cursor: string | undefined;
         for (let page = 0; page < plan.maxPages; page += 1) {
           if (!fits(plan.worstSearchMicros)) {
             outcome = "budget";
-            break outer;
+            break inputs;
           }
           let result: Awaited<ReturnType<SocialSource["search"]>>;
           try {
@@ -194,11 +209,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
           // The model is the slow part, so a few calls run at once. Each one in
           // flight is counted at its worst case before it starts.
           for (let i = 0; i < toSort.length; i += sortConcurrency) {
-            const affordable = Math.floor((runCap - spent()) / worstSortMicros);
+            const affordable = Math.floor(planLeft() / worstSortMicros);
             const batch = toSort.slice(i, i + Math.min(sortConcurrency, affordable));
             if (batch.length === 0) {
               outcome = "budget";
-              break outer;
+              break inputs;
             }
             const outcomes = await Promise.all(
               batch.map((post) =>
@@ -232,7 +247,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
             await save();
             if (batch.length < Math.min(sortConcurrency, toSort.length - i)) {
               outcome = "budget";
-              break outer;
+              break inputs;
             }
           }
 
@@ -240,6 +255,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           cursor = result.next.cursor;
         }
       }
+      carried = Math.max(0, planAllowance - (spent() - planStart));
     }
     await forgetOld(sql, start);
   } catch (error) {
