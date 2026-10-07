@@ -6,7 +6,7 @@ priority: p1
 created: 2026-10-07T13:35+08:00
 parent: US-416
 area: radar
-resolution:
+resolution: shipped
 ---
 
 ## Context
@@ -36,9 +36,9 @@ later run sorts it while its search still reaches back that far.
 - [x] The image builds with Claude Code 2.1.290, and the bridge starts in it.
 - [x] A sample of stored posts is sorted by sonnet through the bridge and
       read by hand; the owner allowed the push without reading it.
-- [ ] Deployed; the owner sets the token, the model lines and the fallback in
-      the box's `.env` and restarts the stack.
-- [ ] The first live run on the bridge is checked: sorted, kept, no failed
+- [x] Deployed; the token, the model lines and the fallback are set in the
+      box's `.env`, and the worker and bridge restarted.
+- [x] The first live run on the bridge is checked: sorted, kept, no failed
       calls.
 
 ## Notes
@@ -63,3 +63,15 @@ later run sorts it while its search still reaches back that far.
   books, films, a chip shop, parking and advice refused; headphones, a
   podcast app, an iPad drawing app, a car seat, a hat maker kept. 10–14 kept
   of 36 once the broken ones count. The owner said to allow all; committed.
+- 2026-10-07T14:54+08:00 Deployed in 0839a77. The `.env` on the box now
+  points the model at the bridge (backup `.env.before-us455`): Radar's
+  DeepSeek key and prices moved to the BRIDGE_FALLBACK_* lines, the token is
+  BuyerFinder's. Worker and bridge recreated; the bridge's start line names
+  the fallback and the $1 budget.
+- 2026-10-07T15:20+08:00 First live runs on the bridge. Run 291 (at the
+  restart, 06:54 UTC): 135 fetched, 128 sorted, 98 kept. Run 292 (07:00 UTC):
+  120 fetched, 29 sorted, 8 kept. The bridge answered all 157 calls with 200,
+  none through the fallback; median 7.9 s with the wait under 1 ms, longest
+  20 s. Each run stopped at its budget with $0.036 spent, all on searches.
+  Not seen: how many answers the engine still rejected; the worker does not
+  log it. Closed.
