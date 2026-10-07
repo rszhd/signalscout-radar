@@ -2,7 +2,7 @@ import type { CandidatePost, ModelCall, SearchResult } from "@signalscout/engine
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Sql } from "../db/client.ts";
 import { spentToday } from "../db/queries.ts";
-import type { SortOutcome } from "../sort/categorize.ts";
+import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
 import { createTestDatabase } from "../testing/database.ts";
 import { run, type RunOptions, type SearchPlan } from "./run.ts";
 
@@ -247,6 +247,46 @@ describe("budget inside a page", () => {
     expect(result.sorted).toBe(1);
     const seen = await sql<{ external_id: string }[]>`select external_id from seen_posts order by external_id`;
     expect(seen.map((row) => row.external_id)).toEqual([a.externalId]);
+  });
+
+  it("sorts every post with a model it does not pay for, after the searches spent the money", async () => {
+    // The same $0.005: one search, then nothing left for a priced sort.
+    await sql`insert into runs (started_at, provider_micros) values (${new Date("2026-09-25T01:00:00Z")}, 1_995_000)`;
+    const source: SocialSource = {
+      async search() {
+        return { posts: [post("Can anyone recommend headphones?"), post("Can anyone recommend a laptop?")], unitsConsumed: 20, next: { status: "done" } };
+      },
+    };
+    const free = async (): Promise<SortOutcome> => ({ ...(await yes()), call: { ...call(0), provider: "ollama" } });
+    const result = await run(options({ plans: [plan(source)], sort: free, worstSortMicros: 0 }));
+
+    expect(result.outcome).toBe("done");
+    expect(result.sorted).toBe(2);
+    expect(result.modelMicros).toBe(0);
+  });
+});
+
+describe("failed model calls", () => {
+  it("leaves a post whose call failed unseen, so a later run sorts it", async () => {
+    const a = post("Can anyone recommend headphones?");
+    const b = post("Can anyone recommend a laptop?");
+    const once: SearchPlan = {
+      ...plan({
+        async search() {
+          return { posts: [a, b], unitsConsumed: 20, next: { status: "done" } };
+        },
+      }),
+    };
+    const limited = async (sorted: PostToSort): Promise<SortOutcome> =>
+      sorted.text === b.text ? { status: "failed", error: "You've hit your limit", call: call(0) } : yes();
+
+    await run(options({ plans: [once], sort: limited }));
+    const seen = await sql<{ external_id: string }[]>`select external_id from seen_posts`;
+    expect(seen.map((row) => row.external_id)).toEqual([a.externalId]);
+
+    let sorts = 0;
+    await run(options({ plans: [once], sort: async () => ((sorts += 1), yes()) }));
+    expect(sorts).toBe(1);
   });
 });
 

@@ -35,7 +35,8 @@ const env = z
 const sql = connect(env.DATABASE_URL);
 
 const registry = createSourceRegistry({ definitions: builtInSources, runtime: createSourceRuntime() });
-const sort = createSorter(aiConfigFromEnvironment(aiEnvSchema.parse(process.env)));
+const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
+const sort = createSorter(ai);
 
 /**
  * Software first, because the first audience is people who build software:
@@ -186,7 +187,9 @@ async function once() {
     sort,
     dailyCapMicros: Math.round(env.RADAR_DAILY_CAP_USD * 1e6),
     runsPerDay: 24,
-    worstSortMicros: 2000,
+    // The engine prices an `ollama` call at zero. Here that is the Claude
+    // bridge on the owner's subscription (src/bridge, US-455).
+    worstSortMicros: ai.provider === "ollama" ? 0 : 2000,
     lookBackMs: 3 * 60 * 60 * 1000,
     log: (line) => console.log(line),
   });

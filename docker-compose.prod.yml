@@ -80,6 +80,51 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    networks:
+      - default
+      - claude
+
+  # Sorting on the owner's Claude subscription (src/bridge, US-455). The worker
+  # reaches it at http://claude-bridge:8787/v1 when .env points the model
+  # there. It gets no env_file and is not on the default network: it holds the
+  # Claude token and nothing else, and cannot reach Postgres. The posts it
+  # reads are written by strangers; Claude runs with no tools.
+  claude-bridge:
+    image: "${RADAR_IMAGE:?deploy by digest, set RADAR_IMAGE}"
+    restart: unless-stopped
+    command: ["node", "src/bridge/main.ts"]
+    environment:
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      # Each call is one Claude Code process of about 250 MB.
+      BRIDGE_CONCURRENCY: ${BRIDGE_CONCURRENCY:-5}
+      # DeepSeek when Claude fails or hits its limit. Off without a key. The
+      # worker records bridge calls at no cost, so the bridge keeps this spend
+      # under its own daily budget, outside RADAR_DAILY_CAP_USD.
+      BRIDGE_FALLBACK_API_KEY: ${BRIDGE_FALLBACK_API_KEY:-}
+      BRIDGE_FALLBACK_MODEL: ${BRIDGE_FALLBACK_MODEL:-}
+      BRIDGE_FALLBACK_FOR: ${BRIDGE_FALLBACK_FOR:-}
+      BRIDGE_FALLBACK_INPUT_PRICE_MICROS: ${BRIDGE_FALLBACK_INPUT_PRICE_MICROS:-}
+      BRIDGE_FALLBACK_OUTPUT_PRICE_MICROS: ${BRIDGE_FALLBACK_OUTPUT_PRICE_MICROS:-}
+      BRIDGE_FALLBACK_DAILY_USD: ${BRIDGE_FALLBACK_DAILY_USD:-}
+      DISABLE_AUTOUPDATER: "1"
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks:
+      - claude
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres:
@@ -88,3 +133,5 @@ networks:
   edge:
     external: true
     name: ${EDGE_NETWORK}
+  # The worker and the bridge only. Not internal: Claude needs the internet.
+  claude:

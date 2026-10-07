@@ -63,7 +63,11 @@ export interface RunOptions {
   readonly dailyCapMicros: number;
   /** Runs per UTC day. The day's remainder is shared by the runs still to come. */
   readonly runsPerDay: number;
-  /** The dearest one model call can cost, in micro-dollars. */
+  /**
+   * The dearest one model call can cost, in micro-dollars. Zero for a model
+   * the run does not pay for (the Claude bridge, US-455): its calls never wait
+   * for money the searches left.
+   */
   readonly worstSortMicros: number;
   /** How far back a search looks. Overlap is fine: `seen_posts` removes it. */
   readonly lookBackMs: number;
@@ -231,7 +235,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           // The model is the slow part, so a few calls run at once. Each one in
           // flight is counted at its worst case before it starts.
           for (let i = 0; i < toSort.length; i += sortConcurrency) {
-            const affordable = Math.floor(planLeft() / worstSortMicros);
+            const affordable = worstSortMicros === 0 ? sortConcurrency : Math.floor(planLeft() / worstSortMicros);
             const batch = toSort.slice(i, i + Math.min(sortConcurrency, affordable));
             if (batch.length === 0) {
               outcome = "budget";
@@ -263,9 +267,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
                 add("kept", 1);
               }
             }
-            // Seen only once sorted: a post the budget did not reach stays
-            // unseen, so a later run can still pick it up.
-            await markSeen(sql, plan.platform, batch.map((post) => post.externalId));
+            // Seen only once sorted: a post the budget did not reach, or whose
+            // call failed (a Claude usage limit), stays unseen, so a later run
+            // can still pick it up while its search reaches back that far.
+            await markSeen(
+              sql,
+              plan.platform,
+              batch.filter((_, index) => outcomes[index]?.status !== "failed").map((post) => post.externalId),
+            );
             await save();
             if (batch.length < Math.min(sortConcurrency, toSort.length - i)) {
               outcome = "budget";

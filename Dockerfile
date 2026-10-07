@@ -24,7 +24,12 @@ COPY --from=build /app/dist dist
 COPY src/db src/db
 COPY src/sort src/sort
 COPY src/worker src/worker
+COPY src/bridge src/bridge
 RUN find src -name '*.test.ts' -delete
+# The bridge's Claude Code (src/bridge). Pinned, and the same version as
+# BuyerFinder's: a new version can change what a call costs or prints, so it
+# moves with a commit, never on its own.
+RUN npm install -g @anthropic-ai/claude-code@2.1.290 && npm cache clean --force
 USER node
 ENV HOST=0.0.0.0 PORT=4321
 EXPOSE 4321
