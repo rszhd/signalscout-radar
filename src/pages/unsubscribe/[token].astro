@@ -1,0 +1,45 @@
+---
+/**
+ * "Stop these emails". US-456. The page's button and a mail app's one-click
+ * request (RFC 8058, the List-Unsubscribe-Post header) are both a POST here;
+ * a GET only shows the button, because mail scanners open every link.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { db } from "@/lib/db";
+import { readByToken, unsubscribe } from "@/lib/subscribers.ts";
+
+const sql = db();
+const token = Astro.params.token ?? "";
+const subscriber = Astro.request.method === "POST" ? await unsubscribe(sql, token) : await readByToken(sql, token);
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+<Layout title="Stop these emails | SignalScout Radar" description="Stop the daily Radar email." noindex>
+  <section class="mx-auto max-w-lg px-4 pt-16 text-center wrap-anywhere">
+    {!subscriber && (
+      <>
+        <h1 class="text-2xl font-semibold">This link does not work</h1>
+        <p class="mt-2 text-secondary-foreground">It may be cut short. Use the link at the bottom of the last email.</p>
+      </>
+    )}
+    {subscriber && subscriber.unsubscribedAt && (
+      <>
+        <h1 class="text-2xl font-semibold">You won't get these emails any more</h1>
+        <p class="mt-2 text-secondary-foreground">We sent the last one to {subscriber.email}. To start again, pick your tags.</p>
+        <a href="/subscribe" class="mt-6 inline-block font-semibold text-primary hover:underline">Pick tags</a>
+      </>
+    )}
+    {subscriber && !subscriber.unsubscribedAt && (
+      <>
+        <h1 class="text-2xl font-semibold">Stop the daily email?</h1>
+        <p class="mt-2 text-secondary-foreground">We will stop emailing {subscriber.email}.</p>
+        <form method="post" class="mt-6 flex flex-col items-center gap-3">
+          <button type="submit" class="inline-flex h-10 items-center rounded-full bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/80">
+            Stop these emails
+          </button>
+          <a href={`/subscription/${subscriber.token}`} class="text-[0.9375rem] font-semibold text-primary hover:underline">Change my tags instead</a>
+        </form>
+      </>
+    )}
+  </section>
+</Layout>

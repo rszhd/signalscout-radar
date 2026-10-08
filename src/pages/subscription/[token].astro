@@ -1,0 +1,92 @@
+---
+/**
+ * A subscriber's own page, from the link in every daily email. US-456. The
+ * token is the subscriber, so a change here applies at once, without a
+ * second email. Unticking every tag stops the emails.
+ */
+import { onlyShown, shownTags } from "@/db/tags.ts";
+import Layout from "@/layouts/Layout.astro";
+import { db } from "@/lib/db";
+import { offeredCategories } from "@/sort/categories.ts";
+import { readByToken, setTags } from "@/lib/subscribers.ts";
+
+const sql = db();
+const token = Astro.params.token ?? "";
+let subscriber = await readByToken(sql, token);
+let saved = false;
+if (subscriber && Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const picked = await onlyShown(sql, form.getAll("tag").map(String));
+  subscriber = await setTags(sql, token, picked);
+  saved = true;
+}
+const tags = await shownTags(sql);
+const mine = new Set(subscriber?.tags ?? []);
+// The site's category order, with the ones the subscriber follows first.
+const groups = offeredCategories
+  .map((category) => ({
+    category: category.slug,
+    name: category.name,
+    tags: tags.filter((tag) => tag.category === category.slug),
+  }))
+  .filter((group) => group.tags.length > 0)
+  .sort((a, b) => Number(b.tags.some((tag) => mine.has(tag.slug))) - Number(a.tags.some((tag) => mine.has(tag.slug))));
+const active = subscriber && subscriber.confirmedAt && !subscriber.unsubscribedAt;
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+<Layout title="Your Radar email | SignalScout Radar" description="Change the tags in your daily Radar email." noindex>
+  <section class="mx-auto max-w-3xl px-4 pt-12 wrap-anywhere">
+    {!subscriber && (
+      <div class="text-center">
+        <h1 class="text-2xl font-semibold">This link does not work</h1>
+        <p class="mt-2 text-secondary-foreground">It may be cut short. Use the link at the bottom of the last email.</p>
+      </div>
+    )}
+    {subscriber && !active && (
+      <div class="text-center">
+        <h1 class="text-2xl font-semibold">{subscriber.unsubscribedAt ? "You stopped these emails" : "Confirm your email first"}</h1>
+        <p class="mt-2 text-secondary-foreground">
+          {subscriber.unsubscribedAt ? "To start again, pick your tags and enter your email again." : "Click the link in the confirmation email we sent you."}
+        </p>
+        {subscriber.unsubscribedAt && <a href="/subscribe" class="mt-6 inline-block font-semibold text-primary hover:underline">Pick tags</a>}
+      </div>
+    )}
+    {subscriber && active && (
+      <form method="post">
+        <h1 class="text-2xl font-semibold tracking-tight">Your daily email</h1>
+        <p class="mt-2 text-secondary-foreground">
+          Sent to {subscriber.email} every morning with new posts under these tags. Tick or untick, then save.
+        </p>
+        {saved && <p class="mt-4 rounded-xl bg-brand-soft px-4 py-3 text-[0.9375rem] text-primary">Saved.</p>}
+        <div class="mt-6 flex flex-col gap-3">
+          {groups.map((group) => {
+            const count = group.tags.filter((tag) => mine.has(tag.slug)).length;
+            return (
+              <details class="rounded-xl border bg-card px-4 py-3" open={count > 0}>
+                <summary class="cursor-pointer font-semibold">
+                  {group.name}
+                  {count > 0 && <span class="ml-2 text-[0.875rem] font-normal text-primary">{count} picked</span>}
+                </summary>
+                <div class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                  {group.tags.map((tag) => (
+                    <label class="inline-flex items-center gap-2 text-[0.9375rem]">
+                      <input type="checkbox" name="tag" value={tag.slug} checked={mine.has(tag.slug)} class="size-4 accent-primary" />
+                      {tag.name}
+                    </label>
+                  ))}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+        <div class="mt-6 flex flex-wrap items-center gap-4">
+          <button type="submit" class="inline-flex h-10 items-center rounded-full bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/80">
+            Save
+          </button>
+          <a href={`/unsubscribe/${subscriber.token}`} class="text-[0.9375rem] text-muted-foreground hover:text-foreground">Stop these emails</a>
+        </div>
+      </form>
+    )}
+  </section>
+</Layout>

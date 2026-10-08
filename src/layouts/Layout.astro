@@ -2,6 +2,7 @@
 import "@/styles/globals.css";
 
 import { signalscoutUrl, siteUrl } from "@/lib/links";
+import { mailReady } from "@/lib/site";
 
 interface Props {
   title: string;
@@ -12,9 +13,11 @@ interface Props {
   feed?: { title: string; path: string };
   /** For the UTM tag on links to SignalScout: the category, or "home". */
   campaign?: string;
+  /** A page for one subscriber, reached by a link in an email. */
+  noindex?: boolean;
 }
 
-const { title, description, image = "/og/home.png", feed, campaign = "home" } = Astro.props;
+const { title, description, image = "/og/home.png", feed, campaign = "home", noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, siteUrl).toString();
 const imageUrl = new URL(image, siteUrl).toString();
 // Public: it is in every page the landing serves. One property for both
@@ -33,6 +36,7 @@ const analyticsId = process.env.GA_MEASUREMENT_ID;
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
     {feed && <link rel="alternate" type="application/rss+xml" title={feed.title} href={feed.path} />}
 
     <meta property="og:type" content="website" />
@@ -77,6 +81,7 @@ const analyticsId = process.env.GA_MEASUREMENT_ID;
         <nav class="hidden items-center gap-7 text-[0.9375rem] text-secondary-foreground md:flex">
           <a href="/#categories" class="hover:text-foreground">Categories</a>
           <a href="/#latest" class="hover:text-foreground">Latest</a>
+          {mailReady() && <a href="/subscribe" class="hover:text-foreground">Daily email</a>}
           <a href="/about" class="hover:text-foreground">How it works</a>
           <a href="https://github.com/rszhd/signalscout-radar" class="hover:text-foreground">GitHub</a>
         </nav>

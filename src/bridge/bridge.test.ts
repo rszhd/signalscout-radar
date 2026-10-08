@@ -271,7 +271,14 @@ describe("the bridge behind Radar's sorter", () => {
       is_error: false,
       result:
         "```json\n" +
-        JSON.stringify({ isRequest: true, category: "productivity", wants: "A self-hosted notes app that syncs to a phone" }) +
+        JSON.stringify({
+          isRequest: true,
+          category: "productivity",
+          wants: "A self-hosted notes app that syncs to a phone",
+          tags: ["note-taking"],
+          newTag: "",
+          leaving: "",
+        }) +
         "\n```",
       usage: { input_tokens: 900, output_tokens: 40 },
     };

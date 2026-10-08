@@ -2,9 +2,12 @@
 import { CategoryList } from "@/components/CategoryList";
 import { Feed } from "@/components/Feed";
 import Pitch from "@/components/Pitch.astro";
+import { Subscribe } from "@/components/Subscribe";
 import { categoryCounts, requestsIn } from "@/db/queries.ts";
+import { shownTags } from "@/db/tags.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
+import { mailReady } from "@/lib/site.ts";
 import { platforms, toCard, toTiles } from "@/lib/present";
 import { categoryBySlug } from "@/sort/categories.ts";
 
@@ -13,7 +16,13 @@ if (!category) return new Response("Not found", { status: 404 });
 
 const sql = db();
 const now = new Date();
-const [rows, counts] = await Promise.all([requestsIn(sql, category.slug, 100), categoryCounts(sql, now)]);
+const [rows, counts, allTags] = await Promise.all([
+  requestsIn(sql, category.slug, 100),
+  categoryCounts(sql, now),
+  shownTags(sql, now),
+]);
+// Busiest first, so the chips a seller sees first are the ones with buyers.
+const tags = allTags.filter((tag) => tag.category === category.slug).sort((a, b) => b.week - a.week);
 const cards = rows.map((row) => toCard(row, now));
 const tiles = toTiles(counts);
 const own = tiles.find((tile) => tile.slug === category.slug);
@@ -58,6 +67,19 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
         </a>
       </div>
       <p class="mt-3 max-w-2xl text-[0.9375rem] text-secondary-foreground">Covers {category.covers}.</p>
+      {tags.length > 0 && (
+        <div class="mt-4 flex max-w-3xl flex-wrap gap-2">
+          {tags.map((tag) => (
+            <a
+              href={`/t/${tag.slug}`}
+              class="inline-flex h-8 items-center gap-1.5 rounded-full border bg-background px-3 text-[0.875rem] text-secondary-foreground hover:border-brand-tint hover:text-primary"
+            >
+              {tag.name}
+              {tag.week > 0 && <span class="text-muted-foreground tabular-nums">{tag.week}</span>}
+            </a>
+          ))}
+        </div>
+      )}
       <div class="mt-5 grid max-w-xl grid-cols-3 gap-3">
         <div class="rounded-xl border bg-background px-4 py-3">
           <p class="text-[0.8125rem] text-muted-foreground">Last 7 days</p>
@@ -81,16 +103,24 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
     </div>
   </section>
 
-  <section class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+  <section class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
     <div>
       <Feed client:load requests={cards} showCategory={false} />
       <Pitch topic={name} campaign={category.slug} />
     </div>
-    {related.length > 0 && (
-      <div class="lg:self-start">
-        <h2 class="mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Related</h2>
-        <CategoryList categories={related} compact />
-      </div>
-    )}
+    <div class="flex flex-col gap-8 lg:self-start">
+      {tags.length > 0 && mailReady() && (
+        <Subscribe
+          client:load
+          groups={[{ category: category.slug, name, tags: tags.map(({ slug, name, week }) => ({ slug, name, week })) }]}
+        />
+      )}
+      {related.length > 0 && (
+        <div>
+          <h2 class="mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Related</h2>
+          <CategoryList categories={related} compact />
+        </div>
+      )}
+    </div>
   </section>
 </Layout>

@@ -13,6 +13,7 @@
 import type { CandidatePost, ModelCall, SocialSource } from "@signalscout/engine";
 import type { Sql } from "../db/client.ts";
 import { alreadySeen, forgetOld, markSeen, saveRequest, spentToday } from "../db/queries.ts";
+import { forgetIdleProposals, proposeTags, showBusyProposals } from "../db/tags.ts";
 import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
 import { offersWork, readsLikeRequest } from "../sort/phrases.ts";
 
@@ -252,6 +253,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
               add("modelMicros", Number.isNaN(cost) ? worstSortMicros : cost);
               add("sorted", 1);
               if (sorted.status === "sorted" && sorted.verdict.isRequest && sorted.verdict.category !== "other") {
+                await proposeTags(sql, sorted.tagging.proposals);
                 await saveRequest(sql, {
                   platform: plan.platform,
                   externalId: post.externalId,
@@ -263,6 +265,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
                   category: sorted.verdict.category,
                   postedAt: post.postedAt,
                   phrase: text,
+                  tags: sorted.tagging.tags,
                 });
                 add("kept", 1);
               }
@@ -289,6 +292,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
       carried = Math.max(0, planAllowance - (spent() - planStart));
     }
     await forgetOld(sql, start);
+    // US-456: a proposed tag enough posts carry is shown; one no post carries
+    // any more is dropped.
+    const shown = await showBusyProposals(sql);
+    if (shown.length > 0) log(`tags now shown: ${shown.join(", ")}`);
+    await forgetIdleProposals(sql);
   } catch (error) {
     await save();
     await sql`update runs set finished_at = ${now()}, outcome = ${(error as Error).message} where id = ${runId}`;

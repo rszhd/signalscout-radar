@@ -1,0 +1,63 @@
+---
+/**
+ * The link in the confirmation email. US-456. A GET shows a button and
+ * changes nothing: mail scanners open every link in a message, and a GET
+ * that confirmed would sign up whoever the scanner works for.
+ */
+import { shownTags } from "@/db/tags.ts";
+import Layout from "@/layouts/Layout.astro";
+import { db } from "@/lib/db";
+import { listNames } from "@/lib/email.ts";
+import { confirm, readByToken } from "@/lib/subscribers.ts";
+
+const sql = db();
+const token = Astro.params.token ?? "";
+const before = await readByToken(sql, token);
+const subscriber = Astro.request.method === "POST" ? await confirm(sql, token) : before;
+const names = new Map((await shownTags(sql)).map((tag) => [tag.slug, tag.name]));
+const nameOf = (slugs: string[]) => listNames(slugs.map((slug) => names.get(slug) ?? slug));
+const waiting = subscriber ? subscriber.pendingTags : [];
+const confirmedNow = Astro.request.method === "POST" && before && before.pendingTags.length > 0;
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+<Layout title="Confirm your email | SignalScout Radar" description="Confirm your daily Radar email." noindex>
+  <section class="mx-auto max-w-lg px-4 pt-16 text-center wrap-anywhere">
+    {!subscriber && (
+      <>
+        <h1 class="text-2xl font-semibold">This link does not work</h1>
+        <p class="mt-2 text-secondary-foreground">It may be old or cut short. Pick your tags again to get a new one.</p>
+        <a href="/subscribe" class="mt-6 inline-block font-semibold text-primary hover:underline">Pick tags</a>
+      </>
+    )}
+    {subscriber && waiting.length > 0 && (
+      <>
+        <h1 class="text-2xl font-semibold">Confirm your daily email</h1>
+        <p class="mt-2 text-secondary-foreground">
+          Every morning, new posts from people asking for <strong class="text-foreground">{nameOf(waiting)}</strong>, sent to {subscriber.email}.
+        </p>
+        <form method="post" class="mt-6">
+          <button type="submit" class="inline-flex h-10 items-center rounded-full bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/80">
+            Confirm
+          </button>
+        </form>
+      </>
+    )}
+    {subscriber && waiting.length === 0 && subscriber.unsubscribedAt && (
+      <>
+        <h1 class="text-2xl font-semibold">You stopped these emails</h1>
+        <p class="mt-2 text-secondary-foreground">To start again, pick your tags and enter your email again.</p>
+        <a href="/subscribe" class="mt-6 inline-block font-semibold text-primary hover:underline">Pick tags</a>
+      </>
+    )}
+    {subscriber && waiting.length === 0 && !subscriber.unsubscribedAt && subscriber.confirmedAt && (
+      <>
+        <h1 class="text-2xl font-semibold">{confirmedNow ? "You're in" : "Already confirmed"}</h1>
+        <p class="mt-2 text-secondary-foreground">
+          Every morning we email {subscriber.email} the new posts from people asking for <strong class="text-foreground">{nameOf(subscriber.tags)}</strong>. No new posts, no email.
+        </p>
+        <a href={`/subscription/${subscriber.token}`} class="mt-6 inline-block font-semibold text-primary hover:underline">Change your tags</a>
+      </>
+    )}
+  </section>
+</Layout>

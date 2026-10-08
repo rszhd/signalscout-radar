@@ -3,6 +3,7 @@
  *
  *   node --env-file=.env src/worker/main.ts          # every hour
  *   node --env-file=.env src/worker/main.ts --once   # one run, then exit
+ *   node --env-file=.env src/worker/main.ts --digests  # the daily emails due now, then exit
  */
 import {
   aiConfigFromEnvironment,
@@ -13,8 +14,11 @@ import {
 } from "@signalscout/engine";
 import { z } from "zod";
 import { connect } from "../db/client.ts";
+import { allTags } from "../db/tags.ts";
+import { createMailer } from "../lib/mail.ts";
 import { servicesEnabled } from "../sort/categories.ts";
 import { createSorter } from "../sort/categorize.ts";
+import { sendDigests } from "./digest.ts";
 import { run, type SearchPlan } from "./run.ts";
 
 // The cheap model rejects a JSON schema and the engine puts it in the prompt
@@ -27,6 +31,7 @@ const env = z
     SOCIALDATA_API_KEY: z.string().min(1),
     SCRAPECREATORS_API_KEY: z.string().min(1),
     RADAR_DAILY_CAP_USD: z.coerce.number().positive().max(20).default(2),
+    PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().url().default("https://radar.signalscout.run")),
   })
   .parse(process.env);
 
@@ -36,7 +41,6 @@ const sql = connect(env.DATABASE_URL);
 
 const registry = createSourceRegistry({ definitions: builtInSources, runtime: createSourceRuntime() });
 const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
-const sort = createSorter(ai);
 
 /**
  * Software first, because the first audience is people who build software:
@@ -181,6 +185,9 @@ const plans: SearchPlan[] = [
 ];
 
 async function once() {
+  // The tags as they are now, with yesterday's proposals, so a proposed tag
+  // is reused and not proposed again under another name (US-456).
+  const sort = createSorter(ai, await allTags(sql));
   await run({
     sql,
     plans,
@@ -195,7 +202,24 @@ async function once() {
   });
 }
 
-if (process.argv.includes("--once")) {
+// Without SMTP settings there is no daily email; the run goes on.
+const send = createMailer();
+if (!send) console.log("SMTP is not set up: no daily emails");
+
+/** After each run, so the 08:00 email holds the 08:00 run's posts. US-456. */
+async function digests() {
+  if (!send) return;
+  const result = await sendDigests(sql, send, env.PUBLIC_URL.replace(/\/$/, ""));
+  if (result.sent + result.empty + result.failed > 0) {
+    console.log(`daily emails: ${result.sent} sent, ${result.empty} with no posts, ${result.failed} failed`);
+  }
+}
+
+if (process.argv.includes("--digests")) {
+  // The daily emails alone, for a test: `pnpm worker --digests`.
+  await digests();
+  await sql.end();
+} else if (process.argv.includes("--once")) {
   await once();
   await sql.end();
 } else {
@@ -204,6 +228,11 @@ if (process.argv.includes("--once")) {
       await once();
     } catch (error) {
       console.error(`run failed: ${(error as Error).message}`);
+    }
+    try {
+      await digests();
+    } catch (error) {
+      console.error(`daily emails failed: ${(error as Error).message}`);
     }
     const next = new Date();
     next.setUTCMinutes(0, 0, 0);

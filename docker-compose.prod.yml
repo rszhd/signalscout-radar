@@ -46,6 +46,15 @@ services:
       RADAR_CONTACT: ${RADAR_CONTACT:-}
       # The landing's Google Analytics property; public, in every page it serves.
       GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-G-P0X68V59SC}
+      # The confirmation email (US-456). The worker sends the daily ones and
+      # reads the same lines from .env.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      RADAR_IP_SALT: ${RADAR_IP_SALT:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

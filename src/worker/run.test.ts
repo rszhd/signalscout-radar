@@ -2,6 +2,7 @@ import type { CandidatePost, ModelCall, SearchResult } from "@signalscout/engine
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Sql } from "../db/client.ts";
 import { spentToday } from "../db/queries.ts";
+import { servicesEnabled } from "../sort/categories.ts";
 import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
 import { createTestDatabase } from "../testing/database.ts";
 import { run, type RunOptions, type SearchPlan } from "./run.ts";
@@ -50,7 +51,18 @@ const call = (micros: number): ModelCall => ({
 
 const yes = async (): Promise<SortOutcome> => ({
   status: "sorted",
-  verdict: { isRequest: true, category: "audio", wants: "Headphones for a loud office" },
+  verdict: {
+    isRequest: true,
+    category: "audio",
+    wants: "Headphones for a loud office",
+    tags: ["headphones"],
+    newTag: "",
+    leaving: "Bose",
+  },
+  tagging: {
+    tags: ["headphones", "alt-bose"],
+    proposals: [{ slug: "alt-bose", name: "Alternatives to Bose", category: "audio", kind: "alt" }],
+  },
   call: call(300),
 });
 
@@ -147,6 +159,10 @@ describe("run", () => {
     const [row] = await sql`select * from requests`;
     expect(JSON.stringify(row)).not.toContain("somebody");
     expect(row?.wants).toBe("Headphones for a loud office");
+    expect(row?.tags).toEqual(["headphones", "alt-bose"]);
+    // The proposal waits, hidden, until enough posts carry it (US-456).
+    const [proposal] = await sql`select slug, kind, shown_at from tags where slug = 'alt-bose'`;
+    expect(proposal).toMatchObject({ slug: "alt-bose", kind: "alt", shown_at: null });
   });
 
   it("skips a phrase whose search fails, and records what the run spent", async () => {
@@ -378,9 +394,9 @@ describe("everyHours", () => {
 });
 
 describe("hidden categories", () => {
-  it("keeps a service row stored but shows none of it while services are off", async () => {
+  // The switch is on again since 2026-10-08 (US-456); this holds for when it is off.
+  it.skipIf(servicesEnabled)("keeps a service row stored but shows none of it while services are off", async () => {
     const { latestRequests, requestsIn, categoryCounts } = await import("../db/queries.ts");
-    const { servicesEnabled } = await import("../sort/categories.ts");
     await sql`insert into requests (platform, external_id, url, excerpt, wants, category, posted_at, phrase)
               values ('reddit', 's1', 'https://r/1', 'Need a logo', 'A logo', 'design-services', ${noon}, 'r/DesignJobs'),
                      ('reddit', 'p1', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop')`;
@@ -388,7 +404,6 @@ describe("hidden categories", () => {
     const shown = (await latestRequests(sql)).map((row) => row.category);
     const counts = (await categoryCounts(sql, noon)).map((row) => row.category);
 
-    expect(servicesEnabled).toBe(false);
     expect(shown).toEqual(["computers"]);
     expect(counts).toEqual(["computers"]);
     expect(await requestsIn(sql, "design-services")).toEqual([]);

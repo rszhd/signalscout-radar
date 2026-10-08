@@ -1,0 +1,73 @@
+---
+/**
+ * One tag's posts. US-456. The page a seller lands on from a search for
+ * "people asking which standing desk to buy", and where they follow it.
+ */
+import { Feed } from "@/components/Feed";
+import Pitch from "@/components/Pitch.astro";
+import { Subscribe } from "@/components/Subscribe";
+import { requestsTagged, shownTag, shownTags } from "@/db/tags.ts";
+import Layout from "@/layouts/Layout.astro";
+import { db } from "@/lib/db";
+import { mailReady } from "@/lib/site.ts";
+import { toCard } from "@/lib/present";
+import { categoryBySlug } from "@/sort/categories.ts";
+
+const sql = db();
+const tag = await shownTag(sql, Astro.params.slug ?? "");
+const category = tag ? categoryBySlug(tag.category) : undefined;
+if (!tag || !category) return new Response("Not found", { status: 404 });
+
+const now = new Date();
+const [rows, all] = await Promise.all([requestsTagged(sql, tag.slug, 100), shownTags(sql, now)]);
+const cards = rows.map((row) => toCard(row, now));
+const siblings = all.filter((other) => other.category === tag.category);
+const own = siblings.find((other) => other.slug === tag.slug);
+const lower = tag.name.toLowerCase();
+const heading = tag.kind === "alt" ? `People looking for ${lower}` : `People asking for ${lower}`;
+
+Astro.response.headers.set("Cache-Control", "public, max-age=300");
+---
+
+<Layout
+  title={`${heading} | SignalScout Radar`}
+  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} to use or buy. From Reddit and X, refreshed every hour.${mailReady() ? " Get them by email every morning." : ""}`}
+  campaign={tag.category}
+>
+  <section class="border-b bg-card">
+    <div class="mx-auto max-w-[1240px] px-4 py-10 sm:px-8">
+      <nav class="text-[0.875rem] text-muted-foreground">
+        <a href="/" class="hover:text-foreground">Radar</a>
+        <span class="mx-1.5">/</span>
+        <a href={`/c/${category.slug}`} class="hover:text-foreground">{category.name}</a>
+        <span class="mx-1.5">/</span>
+        <span class="text-foreground">{tag.name}</span>
+      </nav>
+      <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">{heading}</h1>
+      <p class="mt-3 max-w-2xl text-[0.9375rem] text-secondary-foreground">
+        {own?.week ?? 0} in the last 7 days. Each post links to the original, where you can answer it.
+      </p>
+    </div>
+  </section>
+
+  <section class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div class="order-2 lg:order-1">
+      {cards.length > 0 ? (
+        <Feed client:load requests={cards} />
+      ) : (
+        <p class="text-secondary-foreground">No posts in the last 30 days yet. Follow the tag and the next one comes to your inbox.</p>
+      )}
+      <Pitch topic={tag.name} campaign={tag.category} />
+    </div>
+    {mailReady() && (
+    <div class="order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start">
+      <Subscribe
+        client:load
+        groups={[{ category: category.slug, name: category.name, tags: siblings.map(({ slug, name, week }) => ({ slug, name, week })) }]}
+        selected={[tag.slug]}
+        title={`Get ${lower} buyers by email`}
+      />
+    </div>
+    )}
+  </section>
+</Layout>

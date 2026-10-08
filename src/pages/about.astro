@@ -2,6 +2,7 @@
 import Layout from "@/layouts/Layout.astro";
 import { signalscoutUrl } from "@/lib/links";
 import { contactUrl } from "@/lib/present";
+import { mailReady } from "@/lib/site";
 ---
 
 <Layout
@@ -37,6 +38,17 @@ import { contactUrl } from "@/lib/present";
       <li>No usernames, no profile pictures, and no copy of the full post.</li>
       <li>Nothing older than 30 days.</li>
     </ul>
+
+    {mailReady() && (
+      <Fragment>
+        <h2 id="email" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">The daily email</h2>
+        <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+          <a href="/subscribe" class="font-semibold text-primary hover:underline">Pick tags</a> for what you sell, and
+          every morning we email you the new posts under them. We keep your email address, your tags, and when you
+          confirmed: nothing else. Every email has a link to change your tags and one to stop the emails.
+        </p>
+      </Fragment>
+    )}
 
     <h2 id="remove" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Remove a post</h2>
     <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">

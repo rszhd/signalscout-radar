@@ -1,6 +1,6 @@
 /**
- * The paid stage: does this post ask for a product or a business service, and
- * which kind? US-414, and US-429 for services.
+ * The paid stage: does this post ask for a product or a business service,
+ * which kind, and which tags? US-414, US-429 for services, US-456 for tags.
  *
  * The engine's triage and classifier cannot answer it, because both score a
  * post against one product, and Radar has none. This is one structured call
@@ -14,7 +14,9 @@ import {
   type ModelCall,
 } from "@signalscout/engine";
 import { z } from "zod";
+import type { TagRow } from "../db/tags.ts";
 import { categorySlugs, offeredCategories, servicesEnabled } from "./categories.ts";
+import { altSlug, tagSlug } from "./tags.ts";
 
 export const verdictSchema = z.object({
   isRequest: z
@@ -25,6 +27,14 @@ export const verdictSchema = z.object({
     .string()
     .max(140)
     .describe("What the author asks for, in one plain line of at most 100 characters"),
+  // Empty strings and an empty list, never optional fields: OpenAI's strict
+  // mode refuses `.optional()`, and the bridge puts this schema in the prompt.
+  tags: z.array(z.string().max(64)).max(3).describe("1 to 3 tag slugs from the list under the chosen category"),
+  newTag: z.string().max(60).describe("A short product type missing from the list, or an empty string"),
+  leaving: z
+    .string()
+    .max(60)
+    .describe("The brand name of the product the author wants to replace or leave, or an empty string"),
 });
 
 export type Verdict = z.infer<typeof verdictSchema>;
@@ -36,7 +46,16 @@ export interface PostToSort {
   readonly text: string;
 }
 
-export function buildSystemPrompt(): string {
+/** The tags the model may choose, by category: listed and proposed, not "alternatives to". */
+function tagLines(tags: readonly TagRow[]): string[] {
+  return offeredCategories.flatMap((category) => {
+    const own = tags.filter((tag) => tag.category === category.slug && tag.kind === "product");
+    // The name beside the slug: "chargers" alone does not say it holds power banks.
+    return own.length > 0 ? [`- ${category.slug}: ${own.map((tag) => `${tag.slug} (${tag.name})`).join(", ")}`] : [];
+  });
+}
+
+export function buildSystemPrompt(tags: readonly TagRow[] = []): string {
   return [
     "You read one public post and decide whether its author asks other people",
     servicesEnabled
@@ -80,6 +99,25 @@ export function buildSystemPrompt(): string {
     "line, at most 100 characters, with the details that matter: budget, size,",
     "use, deadline, what they want to replace. No name, email, phone number or",
     "handle of anyone. When it is not a request, write an empty string.",
+    "",
+    "TAGS. The products a seller would sell to this author. Pick 1 to 3 slugs",
+    "from the list under the category you chose, most specific first. Pick",
+    "only what the author asks to buy or use, not what they already own.",
+    ...tagLines(tags),
+    "",
+    "NEW TAG. When no tag in the list fits what the author asks for, write the",
+    "product type as a seller would name their market, plural, in 1 to 3 words:",
+    "'Standing desks', 'Password managers'. Never a brand or a model. Otherwise",
+    "write an empty string.",
+    "",
+    "LEAVING. When the author asks for an alternative to a product, or says they",
+    "want to stop using it because it fails them, write that product's brand name",
+    "as its maker writes it, without the model or version: 'HubSpot', 'Procreate',",
+    "'Tempur-Pedic'. Not a product they own and want an accessory or part for, not",
+    "one they outgrew or wore out and may buy again, and not a shop or a",
+    "platform they buy through. Otherwise write an empty string.",
+    "",
+    "When it is not a request, give no tags and empty strings.",
   ].join("\n");
 }
 
@@ -93,13 +131,46 @@ export function buildUserPrompt(post: PostToSort): string {
   ].join("\n");
 }
 
+/** What a kept post carries: its tags, and the new ones to store hidden. */
+export interface Tagging {
+  readonly tags: string[];
+  readonly proposals: TagRow[];
+}
+
+/**
+ * The model's tags, checked. A slug the list does not know is dropped, so a
+ * typo never becomes a tag; the new tag and the product left become slugs,
+ * reused when a tag with that slug exists and proposed when not.
+ */
+export function tagging(verdict: Verdict, known: ReadonlyMap<string, TagRow>): Tagging {
+  const tags = verdict.tags.map((slug) => slug.trim().toLowerCase()).filter((slug) => known.has(slug));
+  const proposals: TagRow[] = [];
+  const category = verdict.category;
+  const fresh = verdict.newTag.trim();
+  const freshSlug = tagSlug(fresh);
+  if (freshSlug.length >= 3) {
+    tags.push(freshSlug);
+    if (!known.has(freshSlug)) proposals.push({ slug: freshSlug, name: fresh.slice(0, 60), category, kind: "product" });
+  }
+  const leaving = verdict.leaving.trim();
+  const leavingSlug = altSlug(leaving);
+  if (leavingSlug.length >= 6) {
+    tags.push(leavingSlug);
+    if (!known.has(leavingSlug)) {
+      proposals.push({ slug: leavingSlug, name: `Alternatives to ${leaving.slice(0, 48)}`, category, kind: "alt" });
+    }
+  }
+  return { tags: [...new Set(tags)], proposals };
+}
+
 export type SortOutcome =
-  | { readonly status: "sorted"; readonly verdict: Verdict; readonly call: ModelCall }
+  | { readonly status: "sorted"; readonly verdict: Verdict; readonly tagging: Tagging; readonly call: ModelCall }
   | { readonly status: "rejected" | "failed"; readonly error: string; readonly call: ModelCall };
 
-export function createSorter(config: AiConfig) {
+export function createSorter(config: AiConfig, tags: readonly TagRow[] = []) {
   const model = createModel(config);
-  const system = buildSystemPrompt();
+  const system = buildSystemPrompt(tags);
+  const known = new Map(tags.map((tag) => [tag.slug, tag]));
 
   return async function sort(post: PostToSort): Promise<SortOutcome> {
     const result = await generateStructured({
@@ -107,11 +178,11 @@ export function createSorter(config: AiConfig) {
       config,
       schema: verdictSchema,
       schemaName: "radar_verdict",
-      schemaDescription: "Whether the post asks for a product, its category, and what it wants",
+      schemaDescription: "Whether the post asks for a product, its category, what it wants, and its tags",
       system,
       prompt: buildUserPrompt(post),
     });
     if (result.status !== "ok") return result;
-    return { status: "sorted", verdict: result.object, call: result.call };
+    return { status: "sorted", verdict: result.object, tagging: tagging(result.object, known), call: result.call };
   };
 }
