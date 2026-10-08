@@ -60,7 +60,7 @@ export type CategoryKind = (typeof categories)[number]["kind"];
  * service categories, the worker does not read the hiring subreddits, and the
  * page hides any service rows already stored — they stay in the table.
  */
-export const servicesEnabled = false;
+export const servicesEnabled = true;
 
 /** The categories Radar uses now: every one, or every one but services. */
 export const offeredCategories = categories.filter(

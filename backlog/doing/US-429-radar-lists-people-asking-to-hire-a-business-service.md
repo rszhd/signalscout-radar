@@ -111,3 +111,9 @@ names, so excerpts must drop them as they drop @handles.
   offers and the contact scrubbing stay on: they serve products too. The
   production read was not checked by hand before it was turned off.
 
+
+- 2026-10-08T12:46+08:00 — **Back on at the owner's word**, with US-456:
+  `servicesEnabled` is true, so the hiring subreddits, the service categories
+  and the 22 stored service rows return on the next deploy, and service
+  posts get tags. Not deployed; the first production run's service requests
+  are still to be read by hand.
