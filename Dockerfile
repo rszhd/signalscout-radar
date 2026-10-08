@@ -25,6 +25,9 @@ COPY src/db src/db
 COPY src/sort src/sort
 COPY src/worker src/worker
 COPY src/bridge src/bridge
+# The worker's daily email (US-456) and the one-time tag back-fill.
+COPY src/lib src/lib
+COPY scripts/tag-stored.ts scripts/tag-stored.ts
 RUN find src -name '*.test.ts' -delete
 # The bridge's Claude Code (src/bridge). Pinned, and the same version as
 # BuyerFinder's: a new version can change what a call costs or prints, so it
