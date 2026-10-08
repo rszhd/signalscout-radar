@@ -7,13 +7,15 @@
  * path but /unsubscribe/<token>, where the token is the only key needed and
  * a forged request can do no more than the link itself.
  */
-import { defineMiddleware } from "astro:middleware";
+// The type, not `defineMiddleware` from the virtual "astro:middleware":
+// CI type-checks before `astro build` writes the types that module needs.
+import type { MiddlewareHandler } from "astro";
 import { siteUrl } from "@/lib/links";
 
 const formTypes = ["application/x-www-form-urlencoded", "multipart/form-data", "text/plain"];
 const safe = ["GET", "HEAD", "OPTIONS"];
 
-export const onRequest = defineMiddleware((context, next) => {
+export const onRequest: MiddlewareHandler = (context, next) => {
   const { request, url } = context;
   if (safe.includes(request.method) || url.pathname.startsWith("/unsubscribe/")) return next();
   const origin = request.headers.get("origin");
@@ -24,4 +26,4 @@ export const onRequest = defineMiddleware((context, next) => {
     return new Response(`Cross-site ${request.method} form submissions are forbidden`, { status: 403 });
   }
   return next();
-});
+};
