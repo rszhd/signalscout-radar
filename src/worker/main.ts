@@ -28,7 +28,7 @@ import { run, type SearchPlan } from "./run.ts";
 const env = z
   .object({
     DATABASE_URL: z.string().url(),
-    SOCIALDATA_API_KEY: z.string().min(1),
+    SOCIALCRAWL_API_KEY: z.string().min(1),
     SCRAPECREATORS_API_KEY: z.string().min(1),
     RADAR_DAILY_CAP_USD: z.coerce.number().positive().max(20).default(2),
     PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().url().default("https://radar.signalscout.run")),
@@ -112,8 +112,9 @@ const plans: SearchPlan[] = [
   },
   {
     platform: "x",
-    source: registry.get("x", "socialdata"),
-    apiKey: env.SOCIALDATA_API_KEY,
+    // SocialCrawl since 2026-10-24: the SocialData account has no credit left.
+    source: registry.get("x", "socialcrawl"),
+    apiKey: env.SOCIALCRAWL_API_KEY,
     share: 0.4,
     // The four measured in US-413, and six aimed at software, which is the
     // first audience; `pnpm phrases` says after a day which ones pay. Each run
@@ -130,10 +131,12 @@ const plans: SearchPlan[] = [
       "any alternatives to",
       "recommend a tool",
     ],
-    maxPages: 10,
+    // The connector stops at two pages a phrase whatever is asked.
+    maxPages: 2,
     limit: 20,
-    worstSearchMicros: 20 * 200,
-    unitMicros: 200,
+    // One credit a request, at the engine's price for the smallest pack.
+    worstSearchMicros: 8118,
+    unitMicros: 8118,
   },
 
   ...(servicesEnabled ? [servicesPlan] : []),
