@@ -1,12 +1,12 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import { signalscoutUrl } from "@/lib/links";
+import { buyerfinderUrl } from "@/lib/links";
 import { contactUrl } from "@/lib/present";
 import { mailReady } from "@/lib/site";
 ---
 
 <Layout
-  title="How SignalScout Radar works"
+  title="How BuyerFinder Radar works"
   description="How Radar finds public posts where people ask which product to buy, what it shows, and how to have a post removed."
   image="/og/about.png"
 >
@@ -25,10 +25,10 @@ import { mailReady } from "@/lib/site";
         It also writes one line that says what the person wants.
       </p>
       <p>
-        Radar is built on the open-source engine of{" "}
-        <a href={signalscoutUrl("about")} class="font-semibold text-primary hover:underline">SignalScout</a>.
-        SignalScout does the same job for one product: it finds only the posts that fit what you sell,
-        scores them, and explains why.
+        Radar is made by{" "}
+        <a href={buyerfinderUrl("about")} class="font-semibold text-primary hover:underline">BuyerFinder</a>.
+        BuyerFinder does the same job for one product: paste your website, and it shows you the posts
+        where people ask for a product like yours.
       </p>
     </div>
 

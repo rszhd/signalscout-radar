@@ -6,7 +6,7 @@ import { feedResponse, renderFeed } from "@/lib/rss";
 export const GET: APIRoute = async () =>
   feedResponse(
     renderFeed({
-      title: "SignalScout Radar: people asking what to buy",
+      title: "BuyerFinder Radar: people asking what to buy",
       description: "Public posts from Reddit and X where someone asks which product to use or buy.",
       page: "/",
       self: "/rss.xml",

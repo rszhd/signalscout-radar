@@ -9,7 +9,7 @@ export const GET: APIRoute = async ({ params }) => {
   if (!category) return new Response("Not found", { status: 404 });
   return feedResponse(
     renderFeed({
-      title: `People asking for ${category.name} | SignalScout Radar`,
+      title: `People asking for ${category.name} | BuyerFinder Radar`,
       description: `Public posts from Reddit and X where someone asks which ${category.name.toLowerCase()} product to use or buy.`,
       page: `/c/${category.slug}`,
       self: `/c/${category.slug}/rss.xml`,

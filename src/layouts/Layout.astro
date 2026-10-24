@@ -1,7 +1,7 @@
 ---
 import "@/styles/globals.css";
 
-import { signalscoutUrl, siteUrl } from "@/lib/links";
+import { buyerfinderUrl, siteUrl } from "@/lib/links";
 import { mailReady } from "@/lib/site";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   description: string;
   /** The share card, a path under public/: /og/home.png, /og/c/<slug>.png. */
   image?: string;
-  /** For the UTM tag on links to SignalScout: the category, or "home". */
+  /** For the UTM tag on links to BuyerFinder: the category, or "home". */
   campaign?: string;
   /** A page for one subscriber, reached by a link in an email. */
   noindex?: boolean;
@@ -37,7 +37,7 @@ const analyticsId = process.env.GA_MEASUREMENT_ID;
     {noindex && <meta name="robots" content="noindex" />}
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="SignalScout Radar" />
+    <meta property="og:site_name" content="BuyerFinder Radar" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
@@ -79,10 +79,10 @@ const analyticsId = process.env.GA_MEASUREMENT_ID;
           <a href="/about" class="hover:text-foreground">How it works</a>
         </nav>
         <a
-          href={signalscoutUrl("header", campaign)}
+          href={buyerfinderUrl("header", campaign)}
           class="inline-flex shrink-0 items-center gap-1 text-[0.9375rem] font-semibold whitespace-nowrap text-secondary-foreground hover:text-primary"
         >
-          SignalScout <span aria-hidden="true">↗</span>
+          BuyerFinder <span aria-hidden="true">↗</span>
         </a>
       </div>
     </header>
@@ -98,7 +98,7 @@ const analyticsId = process.env.GA_MEASUREMENT_ID;
           30 days. <a href="/about#remove" class="font-semibold text-primary hover:underline">Ask us to remove a post</a>.
         </p>
         <p>
-          Made with <a href={signalscoutUrl("footer", campaign)} class="font-semibold text-foreground hover:underline">SignalScout</a>
+          Made with <a href={buyerfinderUrl("footer", campaign)} class="font-semibold text-foreground hover:underline">BuyerFinder</a>
         </p>
       </div>
     </footer>

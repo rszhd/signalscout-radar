@@ -7,7 +7,7 @@
  */
 // Not present.ts: it imports through the "@/" alias, which the worker's
 // plain Node cannot resolve.
-import { signalscoutUrl } from "./links.ts";
+import { buyerfinderUrl } from "./links.ts";
 
 export interface Email {
   subject: string;
@@ -34,7 +34,7 @@ function shell(body: string, footer: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#f8f9fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:${ink}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid ${line};border-radius:14px">
-<tr><td style="padding:20px 24px 0;font-weight:700;font-size:16px">SignalScout <span style="color:${brand}">Radar</span></td></tr>
+<tr><td style="padding:20px 24px 0;font-weight:700;font-size:16px">BuyerFinder <span style="color:${brand}">Radar</span></td></tr>
 <tr><td style="padding:12px 24px 24px;font-size:15px;line-height:1.55">${body}</td></tr>
 <tr><td style="padding:14px 24px;border-top:1px solid ${line};font-size:12px;line-height:1.6;color:${muted}">${footer}</td></tr>
 </table></td></tr></table></body></html>`;
@@ -116,8 +116,8 @@ export function digestEmail(input: {
   const count = input.posts.length + input.more;
   const people = count === 1 ? "1 person is asking" : `${count} people are asking`;
   const subject = `${people} for ${shortList(input.tagNames)}`;
-  const pitchUrl = signalscoutUrl("email", "digest");
-  const pitch = "Want the posts that ask for your own product, as they appear? SignalScout watches for them.";
+  const pitchUrl = buyerfinderUrl("email", "digest");
+  const pitch = "Want the posts that ask for a product like yours? BuyerFinder finds them.";
   const moreLine = input.more > 0 ? `And ${input.more} more. Pick fewer tags to see them all here.` : "";
 
   const text = [
@@ -151,7 +151,7 @@ export function digestEmail(input: {
     `<p style="margin:0 0 18px">${escapeHtml(people)} for <strong>${escapeHtml(listNames(input.tagNames))}</strong> since the last email.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
 ${moreLine ? `<p style="margin:0 0 16px;color:${muted}">${escapeHtml(moreLine)}</p>` : ""}
-<p style="margin:8px 0 0;padding-top:14px;border-top:1px solid ${line};font-size:14px;color:${muted}">${escapeHtml(pitch.replace(" SignalScout watches for them.", ""))} <a href="${escapeHtml(pitchUrl)}" style="color:${ink};font-weight:600">SignalScout</a> watches for them.</p>`,
+<p style="margin:8px 0 0;padding-top:14px;border-top:1px solid ${line};font-size:14px;color:${muted}">${escapeHtml(pitch.replace(" BuyerFinder finds them.", ""))} <a href="${escapeHtml(pitchUrl)}" style="color:${ink};font-weight:600">BuyerFinder</a> finds them.</p>`,
     `<a href="${escapeHtml(input.manageUrl)}" style="color:${muted}">Change your tags</a> · <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:${muted}">Stop these emails</a>`,
   );
   return { subject, text, html };

@@ -1,9 +1,9 @@
 /**
  * An RSS 2.0 feed of requests. Each item links to the original post; the item
- * text ends with one line to SignalScout, tagged as coming from the feed.
+ * text ends with one line to BuyerFinder, tagged as coming from the feed.
  */
 import type { RequestRow } from "@/db/queries.ts";
-import { signalscoutUrl, siteUrl } from "./links.ts";
+import { buyerfinderUrl, siteUrl } from "./links.ts";
 
 function escape(text: string): string {
   return text
@@ -26,14 +26,14 @@ export function renderFeed(options: {
   campaign: string;
   rows: readonly RequestRow[];
 }): string {
-  const pitch = signalscoutUrl("rss", options.campaign);
+  const pitch = buyerfinderUrl("rss", options.campaign);
   const items = options.rows.map((row) => {
     const where = row.channel ? `${platformName[row.platform]} · r/${row.channel}` : platformName[row.platform];
     const body = [
       `<p><b>Wants:</b> ${escape(row.wants)}</p>`,
       `<p>${escape(row.excerpt)}</p>`,
       `<p>${escape(where)} · <a href="${escape(row.url)}">Open the post</a></p>`,
-      `<p><a href="${escape(pitch)}">Only the posts that fit your product: SignalScout</a></p>`,
+      `<p><a href="${escape(pitch)}">Posts asking for a product like yours: BuyerFinder</a></p>`,
     ].join("");
     return [
       "    <item>",

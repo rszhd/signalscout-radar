@@ -14,7 +14,7 @@ const subscriber = Astro.request.method === "POST" ? await unsubscribe(sql, toke
 Astro.response.headers.set("Cache-Control", "no-store");
 ---
 
-<Layout title="Stop these emails | SignalScout Radar" description="Stop the daily Radar email." noindex>
+<Layout title="Stop these emails | BuyerFinder Radar" description="Stop the daily Radar email." noindex>
   <section class="mx-auto max-w-lg px-4 pt-16 text-center wrap-anywhere">
     {!subscriber && (
       <>
