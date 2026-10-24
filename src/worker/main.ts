@@ -187,16 +187,27 @@ const plans: SearchPlan[] = [
   },
 ];
 
-async function once() {
+/**
+ * The subreddits once, two pages each and every one of them, for posts the
+ * hourly runs missed. The connectors stop every input at two pages, so this is
+ * as far back as a run can reach: phrase searches find only the last hour or
+ * so, and an hourly run reads one page of each subreddit. Added on 2026-10-24
+ * after 16 days with no posts kept.
+ */
+const backfillPlans: SearchPlan[] = plans
+  .filter((plan) => plan.channels !== undefined && plan.channels.length > 0)
+  .map(({ everyHours: _, ...plan }) => ({ ...plan, maxPages: 2 }));
+
+async function once(selected = plans, runsPerDay = 24) {
   // The tags as they are now, with yesterday's proposals, so a proposed tag
   // is reused and not proposed again under another name (US-456).
   const sort = createSorter(ai, await allTags(sql));
   await run({
     sql,
-    plans,
+    plans: selected,
     sort,
     dailyCapMicros: Math.round(env.RADAR_DAILY_CAP_USD * 1e6),
-    runsPerDay: 24,
+    runsPerDay,
     // The engine prices an `ollama` call at zero. Here that is the Claude
     // bridge on the owner's subscription (src/bridge, US-455).
     worstSortMicros: ai.provider === "ollama" ? 0 : 2000,
@@ -221,6 +232,10 @@ async function digests() {
 if (process.argv.includes("--digests")) {
   // The daily emails alone, for a test: `pnpm worker --digests`.
   await digests();
+  await sql.end();
+} else if (process.argv.includes("--backfill")) {
+  // One run of `backfillPlans`, out of what is left of today's cap.
+  await once(backfillPlans, 1);
   await sql.end();
 } else if (process.argv.includes("--once")) {
   await once();
