@@ -1,6 +1,6 @@
 ---
 /**
- * The home page's side column: what moved this week, and a feed to follow.
+ * The home page's side column: what moved this week.
  * Information, not a pitch. "Rising" needs a week before to compare with, so
  * until any category has one (five requests or more), it shows the busiest.
  */
@@ -45,32 +45,4 @@ const top = showRising ? rising : busiest;
       </section>
     )
   }
-
-  <section>
-    <h2 class="mb-1 px-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">
-      Follow by RSS
-    </h2>
-    <p class="mb-3 px-3 text-[0.875rem] text-muted-foreground">New requests in your reader, every hour.</p>
-    <ul class="flex flex-col gap-1">
-      <li>
-        <a href="/rss.xml" class="flex items-center gap-2 rounded-lg px-3 py-2 text-[0.9375rem] hover:bg-brand-soft/60">
-          <svg viewBox="0 0 24 24" class="size-4 shrink-0 text-[#e8710a]" aria-hidden="true"><path fill="currentColor" d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7zm2 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></svg>
-          <span class="font-semibold text-foreground">All requests</span>
-        </a>
-      </li>
-      {
-        busiest.map((tile) => (
-          <li>
-            <a
-              href={`/c/${tile.slug}/rss.xml`}
-              class="flex items-center gap-2 rounded-lg px-3 py-2 text-[0.9375rem] hover:bg-brand-soft/60"
-            >
-              <svg viewBox="0 0 24 24" class="size-4 shrink-0 text-[#e8710a]" aria-hidden="true"><path fill="currentColor" d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7zm2 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></svg>
-              <span class="text-secondary-foreground">{tile.name}</span>
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-  </section>
 </aside>

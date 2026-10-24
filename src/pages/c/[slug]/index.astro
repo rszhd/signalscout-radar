@@ -22,7 +22,10 @@ const [rows, counts, allTags] = await Promise.all([
   shownTags(sql, now),
 ]);
 // Busiest first, so the chips a seller sees first are the ones with buyers.
-const tags = allTags.filter((tag) => tag.category === category.slug).sort((a, b) => b.week - a.week);
+// A tag with no post this week is left out (owner, 2026-10-24).
+const tags = allTags
+  .filter((tag) => tag.category === category.slug && tag.week > 0)
+  .sort((a, b) => b.week - a.week);
 const cards = rows.map((row) => toCard(row, now));
 const tiles = toTiles(counts);
 const own = tiles.find((tile) => tile.slug === category.slug);
@@ -42,7 +45,6 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
   title={`People asking for ${lower} recommendations | SignalScout Radar`}
   description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} product to use or buy. From Reddit and X, refreshed every hour.`}
   image={`/og/c/${category.slug}.png`}
-  feed={{ title: `People asking for ${name}`, path: `/c/${category.slug}/rss.xml` }}
   campaign={category.slug}
 >
   <section class="border-b bg-card">
@@ -54,18 +56,9 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
         <span class="mx-1.5">/</span>
         <span class="text-foreground">{name}</span>
       </nav>
-      <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
-        <h1 class="text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">
-          People asking for {name}
-        </h1>
-        <a
-          href={`/c/${category.slug}/rss.xml`}
-          class="inline-flex h-9 items-center gap-2 rounded-full border bg-background px-4 text-[0.875rem] font-semibold text-secondary-foreground hover:border-brand-tint hover:text-primary"
-        >
-          <svg viewBox="0 0 24 24" class="size-4" aria-hidden="true"><path fill="currentColor" d="M5 3a16 16 0 0 1 16 16h-3A13 13 0 0 0 5 6zm0 6a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7zm2 6a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></svg>
-          Follow by RSS
-        </a>
-      </div>
+      <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">
+        People asking for {name}
+      </h1>
       <p class="mt-3 max-w-2xl text-[0.9375rem] text-secondary-foreground">Covers {category.covers}.</p>
       {tags.length > 0 && (
         <div class="mt-4 flex max-w-3xl flex-wrap gap-2">
@@ -75,7 +68,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
               class="inline-flex h-8 items-center gap-1.5 rounded-full border bg-background px-3 text-[0.875rem] text-secondary-foreground hover:border-brand-tint hover:text-primary"
             >
               {tag.name}
-              {tag.week > 0 && <span class="text-muted-foreground tabular-nums">{tag.week}</span>}
+              <span class="text-muted-foreground tabular-nums">{tag.week}</span>
             </a>
           ))}
         </div>

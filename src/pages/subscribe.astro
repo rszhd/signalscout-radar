@@ -13,7 +13,8 @@ const groups: TagGroup[] = offeredCategories
   .map((category) => ({
     category: category.slug,
     name: category.name,
-    tags: tags.filter((tag) => tag.category === category.slug).map(({ slug, name, week }) => ({ slug, name, week })),
+    // A tag with no post this week is left out (owner, 2026-10-24).
+    tags: tags.filter((tag) => tag.category === category.slug && tag.week > 0).map(({ slug, name, week }) => ({ slug, name, week })),
   }))
   .filter((group) => group.tags.length > 0);
 const picked = Astro.url.searchParams.getAll("tag");
