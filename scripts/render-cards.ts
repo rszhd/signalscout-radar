@@ -22,7 +22,7 @@ const out = join(root, "public", "og");
 const chrome = process.env.CHROME ?? "google-chrome";
 const font = (weight: number) =>
   pathToFileURL(join(root, `node_modules/@fontsource/figtree/files/figtree-latin-${weight}-normal.woff2`)).href;
-const logo = pathToFileURL(join(root, "public/brand/logo-horizontal.svg")).href;
+const mark = pathToFileURL(join(root, "public/mark.svg")).href;
 const reddit = pathToFileURL(join(root, "public/brands/reddit.png")).href;
 const x = pathToFileURL(join(root, "public/brands/x.png")).href;
 
@@ -124,8 +124,8 @@ function html(card: Card): string {
     }
     .copy { width: 560px; display: flex; flex-direction: column; }
     .brand { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 600; }
-    .brand img { height: 40px; width: auto; }
-    .pill { background: rgb(235 74 18 / 10%); color: #c43d0e; font-size: 13px; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 99px; }
+    .brand img { width: 38px; height: 38px; }
+    .pill { background: #e8f0fe; color: #0b57d0; font-size: 13px; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 99px; }
     .eyebrow { display: flex; align-items: center; gap: 10px; margin-top: auto; color: #0b57d0; font-size: 15px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
     .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #0b57d0; }
     h1 { margin-top: 18px; font-size: ${size}px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.04; }
@@ -140,7 +140,7 @@ function html(card: Card): string {
     .ask b { color: #0b57d0; }
   </style></head><body>
     <div class="copy">
-      <div class="brand"><img src="${logo}" alt="BuyerFinder" /> <span class="pill">RADAR</span></div>
+      <div class="brand"><img src="${mark}" alt="" />BuyerFinder <span class="pill">RADAR</span></div>
       <div class="eyebrow">${escape(card.eyebrow)}</div>
       <h1>${escape(card.headline)}</h1>
       <p class="lede">${escape(card.lede)}</p>
