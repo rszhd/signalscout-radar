@@ -22,7 +22,7 @@ const out = join(root, "public", "og");
 const chrome = process.env.CHROME ?? "google-chrome";
 const font = (weight: number) =>
   pathToFileURL(join(root, `node_modules/@fontsource/figtree/files/figtree-latin-${weight}-normal.woff2`)).href;
-const mark = pathToFileURL(join(root, "public/mark.svg")).href;
+const logo = pathToFileURL(join(root, "public/brand/logo-horizontal.svg")).href;
 const reddit = pathToFileURL(join(root, "public/brands/reddit.png")).href;
 const x = pathToFileURL(join(root, "public/brands/x.png")).href;
 
@@ -76,7 +76,7 @@ interface Card {
 const cards: Card[] = [
   {
     file: "home.png",
-    eyebrow: "SignalScout Radar",
+    eyebrow: "BuyerFinder Radar",
     headline: "People asking what to buy, right now.",
     lede: "Products to buy and services to hire, from Reddit and X, every hour.",
     asks: ["A simple CRM with follow-up reminders for a 3-person team", "Noise-cancelling headphones for a loud office"],
@@ -85,7 +85,7 @@ const cards: Card[] = [
     file: "about.png",
     eyebrow: "How Radar works",
     headline: "Every hour, the posts that ask for a product.",
-    lede: "Built on SignalScout's open-source engine. No names, just the ask and a link.",
+    lede: "Made by BuyerFinder. No names, just the ask and a link.",
     asks: ["An alternative to Upwork to find clients", "A laptop for video editing under $1,500"],
   },
   ...categories.map((category) => ({
@@ -124,8 +124,8 @@ function html(card: Card): string {
     }
     .copy { width: 560px; display: flex; flex-direction: column; }
     .brand { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 600; }
-    .brand img { width: 38px; height: 38px; }
-    .pill { background: #e8f0fe; color: #0b57d0; font-size: 13px; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 99px; }
+    .brand img { height: 40px; width: auto; }
+    .pill { background: rgb(235 74 18 / 10%); color: #c43d0e; font-size: 13px; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 99px; }
     .eyebrow { display: flex; align-items: center; gap: 10px; margin-top: auto; color: #0b57d0; font-size: 15px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
     .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #0b57d0; }
     h1 { margin-top: 18px; font-size: ${size}px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.04; }
@@ -140,7 +140,7 @@ function html(card: Card): string {
     .ask b { color: #0b57d0; }
   </style></head><body>
     <div class="copy">
-      <div class="brand"><img src="${mark}" alt="" />SignalScout <span class="pill">RADAR</span></div>
+      <div class="brand"><img src="${logo}" alt="BuyerFinder" /> <span class="pill">RADAR</span></div>
       <div class="eyebrow">${escape(card.eyebrow)}</div>
       <h1>${escape(card.headline)}</h1>
       <p class="lede">${escape(card.lede)}</p>
