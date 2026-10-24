@@ -13,4 +13,4 @@ export function signalscoutUrl(medium: string, campaign = "home"): string {
   return url.toString();
 }
 
-export const siteUrl = "https://radar.signalscout.run";
+export const siteUrl = "https://radar.buyerfinder.run";

@@ -4,7 +4,7 @@
 #
 # Radar keeps its own Postgres and its own volume, as every product on the box
 # does. Only the edge network is shared: the Traefik that serves SignalScout
-# serves radar.signalscout.run too. `.env` beside this file holds the secrets
+# serves radar.buyerfinder.run too. `.env` beside this file holds the secrets
 # and is never copied by a deploy; `.env.example` lists what it needs.
 
 name: signalscout-radar
@@ -75,10 +75,20 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=${EDGE_NETWORK:?set EDGE_NETWORK}
-      - traefik.http.routers.signalscout-radar.rule=Host(`${RADAR_HOST:-radar.signalscout.run}`)
+      - traefik.http.routers.signalscout-radar.rule=Host(`${RADAR_HOST:-radar.buyerfinder.run}`)
       - traefik.http.routers.signalscout-radar.entrypoints=websecure
       - traefik.http.routers.signalscout-radar.tls.certresolver=le
       - traefik.http.services.signalscout-radar.loadbalancer.server.port=4321
+      # The old address, moved on 2026-10-24: every path answers 301 to the
+      # same path on the new one, so shared links and search results follow.
+      - traefik.http.routers.signalscout-radar-moved.rule=Host(`radar.signalscout.run`)
+      - traefik.http.routers.signalscout-radar-moved.entrypoints=websecure
+      - traefik.http.routers.signalscout-radar-moved.tls.certresolver=le
+      - traefik.http.routers.signalscout-radar-moved.service=signalscout-radar
+      - traefik.http.routers.signalscout-radar-moved.middlewares=signalscout-radar-moved
+      - traefik.http.middlewares.signalscout-radar-moved.redirectregex.regex=^https?://radar\.signalscout\.run/(.*)
+      - traefik.http.middlewares.signalscout-radar-moved.redirectregex.replacement=https://${RADAR_HOST:-radar.buyerfinder.run}/$${1}
+      - traefik.http.middlewares.signalscout-radar-moved.redirectregex.permanent=true
 
   worker:
     <<: *app

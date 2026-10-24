@@ -144,7 +144,7 @@ function html(card: Card): string {
       <div class="eyebrow">${escape(card.eyebrow)}</div>
       <h1>${escape(card.headline)}</h1>
       <p class="lede">${escape(card.lede)}</p>
-      <p class="site">radar.signalscout.run</p>
+      <p class="site">radar.buyerfinder.run</p>
     </div>
     <div class="visual">
       ${ask(card.asks[0], reddit, "Reddit", true)}

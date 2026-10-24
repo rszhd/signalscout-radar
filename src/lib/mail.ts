@@ -63,7 +63,7 @@ export function createMailer(environment: NodeJS.ProcessEnv = process.env): Send
       subject: message.subject,
       text: message.text,
       html: message.html,
-      messageId: `<${message.id}@radar.signalscout.run>`,
+      messageId: `<${message.id}@radar.buyerfinder.run>`,
       ...(message.unsubscribeUrl
         ? {
             headers: {

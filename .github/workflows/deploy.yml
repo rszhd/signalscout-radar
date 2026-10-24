@@ -1,4 +1,4 @@
-# A push to `main` tests, builds one image, and puts it on radar.signalscout.run.
+# A push to `main` tests, builds one image, and puts it on radar.buyerfinder.run.
 # Dispatch it on an older commit to roll back.
 name: Test and deploy
 

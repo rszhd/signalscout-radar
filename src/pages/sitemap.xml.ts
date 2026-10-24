@@ -6,7 +6,7 @@ import { mailReady } from "@/lib/site.ts";
 
 /** The home page, the about page, and every category and tag with a request this week. */
 export const GET: APIRoute = async ({ site }) => {
-  const base = site?.toString().replace(/\/$/, "") ?? "https://radar.signalscout.run";
+  const base = site?.toString().replace(/\/$/, "") ?? "https://radar.buyerfinder.run";
   const [counts, tags] = await Promise.all([categoryCounts(db()), shownTags(db())]);
   const paths = [
     "/",

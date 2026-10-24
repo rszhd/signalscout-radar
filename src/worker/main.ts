@@ -31,7 +31,7 @@ const env = z
     SOCIALCRAWL_API_KEY: z.string().min(1),
     SCRAPECREATORS_API_KEY: z.string().min(1),
     RADAR_DAILY_CAP_USD: z.coerce.number().positive().max(20).default(2),
-    PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().url().default("https://radar.signalscout.run")),
+    PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().url().default("https://radar.buyerfinder.run")),
   })
   .parse(process.env);
 

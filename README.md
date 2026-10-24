@@ -2,7 +2,7 @@
 
 A free public page of people asking which product to use or buy, sorted by
 category. A product here is anything a person can pick: software, an app, a
-gadget, a piece of gear. It lives at **radar.signalscout.run**.
+gadget, a piece of gear. It lives at **radar.buyerfinder.run**.
 
 Every hour a worker searches Reddit and X for posts like *"can anyone
 recommend…"*, *"what do you use…"* or *"is it worth buying…"*. A free text rule
