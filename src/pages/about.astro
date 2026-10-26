@@ -39,7 +39,7 @@ const mcpUrl = `${siteUrl}/mcp`;
     <ul class="mt-4 list-disc space-y-2 pl-6 text-[1.0625rem] leading-relaxed text-secondary-foreground">
       <li>A short excerpt of each post and a link to the original.</li>
       <li>No usernames, no profile pictures, and no copy of the full post.</li>
-      <li>Nothing older than 30 days.</li>
+      <li>Pages show the last 30 days. Through <a href="#mcp" class="font-semibold text-primary hover:underline">MCP</a>, your AI can search older posts too.</li>
     </ul>
 
     {mailReady() && (
@@ -68,8 +68,9 @@ const mcpUrl = `${siteUrl}/mcp`;
       </li>
     </ul>
     <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
-      Your AI sees what this page shows: the last 30 days, excerpts and links, no usernames. One address can make
-      {" "}{callsPerDay} calls a day. The menu names in both apps change from time to time.
+      Your AI sees what the pages show, excerpts and links with no usernames, but it can search every post Radar
+      has kept, not only the last 30 days. One address can make {callsPerDay} calls a day. The menu names in both
+      apps change from time to time.
     </p>
 
     <h2 id="remove" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Remove a post</h2>

@@ -6,18 +6,19 @@
 import BarList from "@/components/BarList.astro";
 import Pitch from "@/components/Pitch.astro";
 import { shownDays } from "@/db/queries.ts";
-import { leavingProducts, risingFloor, risingTags, topCategories, topTags } from "@/db/trends.ts";
+import { leavingProducts, risingFloor, risingTags, shownSpan, topCategories, topTags } from "@/db/trends.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { categoryBySlug } from "@/sort/categories.ts";
 
 const sql = db();
 const now = new Date();
+const span = shownSpan(now);
 const [leaving, rising, tags, categories] = await Promise.all([
-  leavingProducts(sql, 12, now),
+  leavingProducts(sql, 12, span),
   risingTags(sql, 10, now),
-  topTags(sql, 15, now),
-  topCategories(sql, now),
+  topTags(sql, 15, span),
+  topCategories(sql, span),
 ]);
 const total = categories.reduce((sum, row) => sum + row.count, 0);
 const posts = (count: number) => `${count.toLocaleString("en")} ${count === 1 ? "post" : "posts"}`;

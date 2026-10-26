@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDatabase } from "../testing/database.ts";
 import type { Sql } from "./client.ts";
-import { leavingProducts, risingTags, tagChannels, topCategories, topTags } from "./trends.ts";
+import { leavingProducts, risingTags, shownSpan, tagChannels, topCategories, topTags } from "./trends.ts";
 
 const now = new Date("2026-10-26T12:00:00Z");
 const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
@@ -49,15 +49,23 @@ describe("trends", () => {
     await posts(4, { tags: ["alt-hubspot"], category: "sales-crm" });
     await posts(9, { tags: ["alt-hidden"], category: "sales-crm" });
 
-    expect(await topTags(sql, 15, now)).toEqual([
+    expect(await topTags(sql, 15, shownSpan(now))).toEqual([
       { slug: "laptops", name: "Laptops", count: 3 },
       { slug: "monitors", name: "Monitors", count: 1 },
     ]);
-    expect(await leavingProducts(sql, 12, now)).toEqual([{ slug: "alt-hubspot", name: "Alternatives to HubSpot", count: 4 }]);
-    expect(await topCategories(sql, now)).toEqual([
+    expect(await leavingProducts(sql, 12, shownSpan(now))).toEqual([{ slug: "alt-hubspot", name: "Alternatives to HubSpot", count: 4 }]);
+    expect(await topCategories(sql, shownSpan(now))).toEqual([
       { slug: "sales-crm", count: 13 },
       { slug: "computers", count: 4 },
     ]);
+  });
+
+  it("counts the whole history when the span is open, and between dates when it is not", async () => {
+    await posts(3, { tags: ["laptops"] });
+    await posts(2, { tags: ["laptops"], at: daysAgo(40) });
+
+    expect(await topTags(sql, 15, { from: null, until: null })).toEqual([{ slug: "laptops", name: "Laptops", count: 5 }]);
+    expect(await topCategories(sql, { from: daysAgo(50), until: daysAgo(30) })).toEqual([{ slug: "computers", count: 2 }]);
   });
 
   it("ranks rising tags by how many more, and leaves out small or falling ones", async () => {

@@ -59,9 +59,9 @@ reasoning.
   claim made either way.
 - Since 2026-10-26 Radar keeps requests older than 30 days (owner); the
   page, feeds and tag pages still show only the last 30 (`shownDays` in
-  `src/db/queries.ts`). The tools may reach further back. The About page
-  and footer say "nothing older than 30 days": that stays true for the
-  page, and the About page must say what MCP reaches.
+  `src/db/queries.ts`). The tools reach the whole history (owner,
+  2026-10-26: "it should be the whole dataset", for market research). The
+  About page and footer now say the pages show 30 days and MCP more.
 
 ## Log
 - 2026-10-26T20:47+08:00 — Built, not pushed. `src/mcp/` (server, HTTP
@@ -77,3 +77,13 @@ reasoning.
   dev server and inside the built image (sample rows). Not yet connected
   from claude.ai or ChatGPT: both connect from their own cloud, so that
   waits for the deploy. 102 tests pass, typecheck and build clean.
+- 2026-10-26T21:05+08:00 — Deployed the 30-day version (d193973):
+  /trends 200, /mcp lists the tools and a live `trends` call answers
+  (Samsung 7, Sony 6). Then the owner asked for the whole dataset. Every
+  tool now counts and searches all kept requests, with an optional
+  since/until; search pages back by `until`. A sixth tool,
+  `count_requests`, counts with the search filters, in total or by day,
+  week, month, category, tag or platform, for market research. The About
+  list and the footer said "nothing older than 30 days"; they now say the
+  pages show 30 days and MCP reaches further. 104 tests pass, typecheck
+  without `.astro/` and build clean; checked with the SDK client locally.

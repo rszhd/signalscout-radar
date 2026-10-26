@@ -1,11 +1,12 @@
 /**
- * What the trends page counts. US-463.
+ * What the trends page and the MCP tools count. US-463, US-462.
  *
- * Every count covers the posts Radar read, in the shown days only
+ * Every count covers the posts Radar read. The page keeps to the shown days
  * (`shownSince`): a chart counts posts, it never shows one, but the page
- * promises nothing older than 30 days, so the counts keep to it too. The
- * counts follow where the worker looks and how much of each run a source
- * gets, so the page compares within them rather than claiming demand.
+ * promises nothing older than 30 days. MCP counts over any span, the whole
+ * history by default (owner, 2026-10-26). The counts follow where the worker
+ * looks and how much of each run a source gets, so they compare within
+ * themselves rather than claim demand.
  */
 import { categorySlugs } from "../sort/categories.ts";
 import type { Sql } from "./client.ts";
@@ -18,6 +19,19 @@ import { shownSince } from "./queries.ts";
 export const risingFloor = 5;
 
 const shown = () => categorySlugs as string[];
+
+/** Posted at or after `from` and before `until`; null leaves that side open. */
+export interface Span {
+  from: Date | null;
+  until: Date | null;
+}
+
+/** What the page counts: the shown days up to now. */
+export const shownSpan = (now = new Date()): Span => ({ from: shownSince(now), until: null });
+
+const within = (sql: Sql, span: Span) => sql`
+  ${span.from ? sql`and r.posted_at >= ${span.from}` : sql``}
+  ${span.until ? sql`and r.posted_at < ${span.until}` : sql``}`;
 
 export interface Count {
   slug: string;
@@ -40,12 +54,12 @@ export interface Channel {
 }
 
 /** Shown tags of one kind, with their posts in the shown days, most first. */
-async function tagCounts(sql: Sql, kind: "product" | "alt", limit: number, now: Date): Promise<Count[]> {
+async function tagCounts(sql: Sql, kind: "product" | "alt", limit: number, span: Span): Promise<Count[]> {
   const rows = await sql<{ slug: string; name: string; count: string }[]>`
     select t.slug, t.name, count(*)::text as count
     from tags t join requests r on t.slug = any (r.tags)
     where t.kind = ${kind} and t.shown_at is not null and t.category in ${sql(shown())}
-      and r.removed_at is null and r.posted_at >= ${shownSince(now)}
+      and r.removed_at is null ${within(sql, span)}
     group by t.slug, t.name
     order by count(*) desc, t.name
     limit ${limit}`;
@@ -56,20 +70,20 @@ async function tagCounts(sql: Sql, kind: "product" | "alt", limit: number, now: 
  * The products people ask to leave: each `alt-<product>` tag. A post here is
  * a buyer for every competitor of that product.
  */
-export function leavingProducts(sql: Sql, limit = 12, now = new Date()): Promise<Count[]> {
-  return tagCounts(sql, "alt", limit, now);
+export function leavingProducts(sql: Sql, limit = 12, span = shownSpan()): Promise<Count[]> {
+  return tagCounts(sql, "alt", limit, span);
 }
 
 /** What people ask for most, by product tag. */
-export function topTags(sql: Sql, limit = 15, now = new Date()): Promise<Count[]> {
-  return tagCounts(sql, "product", limit, now);
+export function topTags(sql: Sql, limit = 15, span = shownSpan()): Promise<Count[]> {
+  return tagCounts(sql, "product", limit, span);
 }
 
-/** Requests per category in the shown days, most first. The slug is the category's. */
-export async function topCategories(sql: Sql, now = new Date()): Promise<{ slug: string; count: number }[]> {
+/** Requests per category in the span, most first. The slug is the category's. */
+export async function topCategories(sql: Sql, span = shownSpan()): Promise<{ slug: string; count: number }[]> {
   const rows = await sql<{ slug: string; count: string }[]>`
-    select category as slug, count(*)::text as count from requests
-    where removed_at is null and category in ${sql(shown())} and posted_at >= ${shownSince(now)}
+    select category as slug, count(*)::text as count from requests r
+    where removed_at is null and category in ${sql(shown())} ${within(sql, span)}
     group by category
     order by count(*) desc, category`;
   return rows.map((row) => ({ slug: row.slug, count: Number(row.count) }));
