@@ -1,0 +1,125 @@
+---
+/**
+ * What people ask for, counted. US-463. Each bar links to the tag or
+ * category page with the posts behind it.
+ */
+import BarList from "@/components/BarList.astro";
+import Pitch from "@/components/Pitch.astro";
+import { shownDays } from "@/db/queries.ts";
+import { leavingProducts, risingFloor, risingTags, topCategories, topTags } from "@/db/trends.ts";
+import Layout from "@/layouts/Layout.astro";
+import { db } from "@/lib/db";
+import { categoryBySlug } from "@/sort/categories.ts";
+
+const sql = db();
+const now = new Date();
+const [leaving, rising, tags, categories] = await Promise.all([
+  leavingProducts(sql, 12, now),
+  risingTags(sql, 10, now),
+  topTags(sql, 15, now),
+  topCategories(sql, now),
+]);
+const total = categories.reduce((sum, row) => sum + row.count, 0);
+const posts = (count: number) => `${count.toLocaleString("en")} ${count === 1 ? "post" : "posts"}`;
+const period = `in the last ${shownDays} days`;
+// "Alternatives to HubSpot" reads as the product alone in a list about leaving.
+const product = (name: string) => name.replace(/^alternatives? to /i, "");
+
+Astro.response.headers.set("Cache-Control", "public, max-age=300");
+---
+
+<Layout
+  title="Trends: what people ask to buy | BuyerFinder Radar"
+  description={`What people on Reddit and X asked to buy ${period}: the products they want to leave, the tags rising fastest, and the most requested categories.`}
+>
+  <section class="border-b bg-card">
+    <div class="mx-auto max-w-[1240px] px-4 py-10 sm:px-8">
+      <nav class="text-[0.875rem] text-muted-foreground">
+        <a href="/" class="hover:text-foreground">Radar</a>
+        <span class="mx-1.5">/</span>
+        <span class="text-foreground">Trends</span>
+      </nav>
+      <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">What people ask to buy</h1>
+      <p class="mt-3 max-w-2xl text-[0.9375rem] text-secondary-foreground">
+        {posts(total)} asking for a product or a service {period}. Every number counts the posts Radar read, from the
+        subreddits and X searches on the <a href="/about" class="font-semibold text-primary hover:underline">How it works</a> page,
+        so compare within a chart, not with the whole market.
+      </p>
+    </div>
+  </section>
+
+  <div class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-6 px-4 pt-10 sm:px-8 lg:grid-cols-2">
+    <section class="rounded-2xl border bg-card p-6 lg:col-span-2">
+      <h2 class="text-xl font-semibold tracking-tight">Products people want to leave</h2>
+      <p class="mt-1 mb-5 text-[0.9375rem] text-muted-foreground">
+        Posts asking for an alternative, {period}. Each one is a buyer for every competitor.
+      </p>
+      {leaving.length > 0 ? (
+        <BarList
+          label={`Posts asking for an alternative, ${period}`}
+          rows={leaving.map((row) => ({
+            label: product(row.name),
+            href: `/t/${row.slug}`,
+            value: row.count,
+            title: `${posts(row.count)} asking for an alternative to ${product(row.name)}`,
+          }))}
+        />
+      ) : (
+        <p class="text-secondary-foreground">No product is named often enough yet.</p>
+      )}
+    </section>
+
+    <section class="rounded-2xl border bg-card p-6">
+      <h2 class="text-xl font-semibold tracking-tight">Rising this week</h2>
+      <p class="mt-1 mb-5 text-[0.9375rem] text-muted-foreground">
+        Tags with the most new posts against the week before. A tag needs {risingFloor} posts this week to count.
+      </p>
+      {rising.length > 0 ? (
+        <BarList
+          label="Posts per tag, the last 7 days against the 7 before"
+          rows={rising.map((row) => ({
+            label: row.name,
+            href: `/t/${row.slug}`,
+            value: row.week,
+            previous: row.previousWeek,
+            title: `${row.name}: ${posts(row.week)} in the last 7 days, ${posts(row.previousWeek)} in the 7 before`,
+          }))}
+        />
+      ) : (
+        <p class="text-secondary-foreground">No tag grew this week.</p>
+      )}
+    </section>
+
+    <section class="rounded-2xl border bg-card p-6">
+      <h2 class="text-xl font-semibold tracking-tight">Most requested</h2>
+      <p class="mt-1 mb-5 text-[0.9375rem] text-muted-foreground">Posts per tag, {period}.</p>
+      <BarList
+        label={`Posts per tag, ${period}`}
+        rows={tags.map((row) => ({
+          label: row.name,
+          href: `/t/${row.slug}`,
+          value: row.count,
+          title: `${row.name}: ${posts(row.count)} ${period}`,
+        }))}
+      />
+    </section>
+
+    <section class="rounded-2xl border bg-card p-6 lg:col-span-2">
+      <h2 class="text-xl font-semibold tracking-tight">By category</h2>
+      <p class="mt-1 mb-5 text-[0.9375rem] text-muted-foreground">
+        Posts per category, {period}. Radar gives software the largest part of each run, so it reads more software posts.
+      </p>
+      <BarList
+        label={`Posts per category, ${period}`}
+        rows={categories.map((row) => {
+          const name = categoryBySlug(row.slug)?.name ?? row.slug;
+          return { label: name, href: `/c/${row.slug}`, value: row.count, title: `${name}: ${posts(row.count)} ${period}` };
+        })}
+      />
+    </section>
+  </div>
+
+  <div class="mx-auto max-w-[1240px] px-4 sm:px-8">
+    <Pitch />
+  </div>
+</Layout>

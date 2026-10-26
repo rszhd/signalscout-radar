@@ -64,7 +64,10 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
   {tiles.length > 0 && (
     <section id="categories" class="mx-auto max-w-[1240px] scroll-mt-20 px-4 pt-14 sm:px-8">
       <h2 class="text-2xl font-semibold tracking-tight">Categories</h2>
-      <p class="mt-1 text-[0.9375rem] text-muted-foreground">Requests in the last 7 days.</p>
+      <p class="mt-1 text-[0.9375rem] text-muted-foreground">
+        Requests in the last 7 days.{" "}
+        <a href="/trends" class="font-semibold text-primary hover:underline">See the trends</a>
+      </p>
       {software.length > 0 && (
         <>
           <h3 class="mt-6 mb-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">Software</h3>

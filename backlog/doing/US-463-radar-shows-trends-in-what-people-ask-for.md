@@ -49,17 +49,18 @@ instead of ranking raw totals across sources as if they were demand.
 
 ## Acceptance
 
-- [ ] `/trends` shows stats 1, 2 and 3; each bar or row links to its tag
+- [x] `/trends` shows stats 1, 2 and 3; each bar or row links to its tag
       or category page
-- [ ] Each tag page shows stats 4 and 5 for that tag
-- [ ] A tag or product with too few posts is left out of the growth and
+- [x] Each tag page shows stat 4 for that tag
+- [ ] Stat 5 (when people ask): waits on a check, see the Log
+- [x] A tag or product with too few posts is left out of the growth and
       "leave" charts; the minimum is written in the code, with the reason
-- [ ] Each chart says it counts the posts Radar read, and the page says
+- [x] Each chart says it counts the posts Radar read, and the page says
       where Radar reads
-- [ ] Charts are drawn on the server (no chart script needed to read
-      them), work at phone width, and read in light and dark
-- [ ] The queries are tested on a test database, with fixed dates
-- [ ] `/trends` is in the menu and the sitemap
+- [x] Charts are drawn on the server (no chart script needed to read
+      them) and work at phone width; Radar has one light theme
+- [x] The queries are tested on a test database, with fixed dates
+- [x] `/trends` is in the menu and the sitemap
 - [ ] Shown locally to the owner before the push
 
 ## Notes
@@ -74,3 +75,15 @@ instead of ranking raw totals across sources as if they were demand.
   test is shown to the owner before the push.
 
 ## Log
+- 2026-10-26T20:37+08:00 — Built, not pushed. `src/db/trends.ts` (5
+  queries, tested), `BarList.astro` (bars in HTML, number at the tip, the
+  row's title as tooltip), `/trends`, "Where people ask" on tag pages,
+  menu, home and sitemap links. Counts keep to the 30 shown days. A rising
+  tag needs 5 posts this week, the floor the category tiles use, and ranks
+  by how many more, not the per cent. "Leave" counts only shown `alt-` tags.
+  Stat 5 is not built: the worker reads the newest 1–2 pages per input at
+  each run, so `posted_at` likely clusters just before run times and an
+  hour chart would show the schedule, not people. To be checked on real
+  rows before it is built. Checked locally on sample rows only (a separate
+  preview database), desktop and phone screenshots. 94 tests pass, typecheck
+  without `.astro/` and build clean.

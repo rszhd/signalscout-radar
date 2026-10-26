@@ -1,0 +1,62 @@
+---
+/**
+ * A ranked list drawn as bars, on the server: one row a label, a bar and its
+ * number. US-463. No script, so it reads without one; the number at each tip
+ * is the table, and the row's title is its tooltip.
+ *
+ * With `previous`, each row draws last week in grey above this week in the
+ * brand colour, and a legend names them.
+ */
+interface Row {
+  label: string;
+  href?: string;
+  value: number;
+  previous?: number;
+  /** The row's tooltip: what the number counts. */
+  title: string;
+}
+
+interface Props {
+  rows: Row[];
+  /** What the bars count, read by a screen reader before the list. */
+  label: string;
+  /** Label above the bar at every width, for a narrow column. */
+  stacked?: boolean;
+}
+
+const { rows, label, stacked = false } = Astro.props;
+const paired = rows.some((row) => row.previous !== undefined);
+const max = Math.max(1, ...rows.flatMap((row) => [row.value, row.previous ?? 0]));
+// The longest bar takes 85% of the row, so its number still fits at the tip.
+const width = (value: number) => (value > 0 ? `${Math.max(1, (value / max) * 85)}%` : "0");
+---
+
+{paired && (
+  <div class="mb-3 flex items-center gap-4 text-[0.8125rem] text-secondary-foreground">
+    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-4 rounded-sm bg-last-week"></span>The 7 days before</span>
+    <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-4 rounded-sm bg-primary"></span>Last 7 days</span>
+  </div>
+)}
+<ol class="space-y-3" aria-label={label}>
+  {rows.map((row) => (
+    <li class:list={["grid grid-cols-[minmax(0,1fr)] gap-1", !stacked && "sm:grid-cols-[13rem_minmax(0,1fr)] sm:items-center sm:gap-4"]} title={row.title}>
+      {row.href ? (
+        <a href={row.href} class="truncate text-[0.9375rem] font-medium text-foreground hover:text-primary hover:underline">{row.label}</a>
+      ) : (
+        <span class="truncate text-[0.9375rem] font-medium text-foreground">{row.label}</span>
+      )}
+      <div class="space-y-1">
+        {row.previous !== undefined && (
+          <div class="flex items-center gap-2">
+            <span class="h-2.5 rounded-r-[4px] bg-last-week" style={{ width: width(row.previous) }}></span>
+            <span class="shrink-0 text-[0.8125rem] text-muted-foreground tabular-nums">{row.previous}</span>
+          </div>
+        )}
+        <div class="flex items-center gap-2">
+          <span class="h-2.5 rounded-r-[4px] bg-primary" style={{ width: width(row.value) }}></span>
+          <span class="shrink-0 text-[0.8125rem] font-semibold text-secondary-foreground tabular-nums">{row.value}</span>
+        </div>
+      </div>
+    </li>
+  ))}
+</ol>

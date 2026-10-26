@@ -3,10 +3,13 @@
  * One tag's posts. US-456. The page a seller lands on from a search for
  * "people asking which standing desk to buy", and where they follow it.
  */
+import BarList from "@/components/BarList.astro";
 import { Feed } from "@/components/Feed";
 import Pitch from "@/components/Pitch.astro";
 import { Subscribe } from "@/components/Subscribe";
+import { shownDays } from "@/db/queries.ts";
 import { requestsTagged, shownTag, shownTags } from "@/db/tags.ts";
+import { tagChannels } from "@/db/trends.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { mailReady } from "@/lib/site.ts";
@@ -19,12 +22,21 @@ const category = tag ? categoryBySlug(tag.category) : undefined;
 if (!tag || !category) return new Response("Not found", { status: 404 });
 
 const now = new Date();
-const [rows, all] = await Promise.all([requestsTagged(sql, tag.slug, 100), shownTags(sql, now)]);
+const [rows, all, channels] = await Promise.all([
+  requestsTagged(sql, tag.slug, 100),
+  shownTags(sql, now),
+  tagChannels(sql, tag.slug, 6, now),
+]);
 const cards = rows.map((row) => toCard(row, now));
 const siblings = all.filter((other) => other.category === tag.category);
 const own = siblings.find((other) => other.slug === tag.slug);
 const lower = tag.name.toLowerCase();
 const heading = tag.kind === "alt" ? `People looking for ${lower}` : `People asking for ${lower}`;
+// US-463: where to answer. X is one place; its searches are not channels.
+const places = channels.map((row) => {
+  const place = row.channel ? `r/${row.channel}` : "X";
+  return { label: place, value: row.count, title: `${place}: ${row.count} ${row.count === 1 ? "post" : "posts"} in the last ${shownDays} days` };
+});
 
 Astro.response.headers.set("Cache-Control", "public, max-age=300");
 ---
@@ -59,14 +71,23 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
       )}
       <Pitch topic={tag.name} campaign={tag.category} />
     </div>
-    {mailReady() && (
-    <div class="order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start">
-      <Subscribe
-        client:load
-        groups={[{ category: category.slug, name: category.name, tags: siblings.map(({ slug, name, week }) => ({ slug, name, week })) }]}
-        selected={[tag.slug]}
-        title={`Get ${lower} buyers by email`}
-      />
+    {(mailReady() || places.length > 0) && (
+    <div class="order-1 space-y-6 lg:order-2 lg:sticky lg:top-24 lg:self-start">
+      {mailReady() && (
+        <Subscribe
+          client:load
+          groups={[{ category: category.slug, name: category.name, tags: siblings.map(({ slug, name, week }) => ({ slug, name, week })) }]}
+          selected={[tag.slug]}
+          title={`Get ${lower} buyers by email`}
+        />
+      )}
+      {places.length > 0 && (
+        <section class="rounded-2xl border bg-card p-5">
+          <h2 class="text-base font-semibold tracking-tight">Where people ask</h2>
+          <p class="mt-1 mb-4 text-[0.875rem] text-muted-foreground">Posts in the last {shownDays} days, in the places Radar reads.</p>
+          <BarList label={`Posts per place, the last ${shownDays} days`} rows={places} stacked />
+        </section>
+      )}
     </div>
     )}
   </section>
