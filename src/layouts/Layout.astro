@@ -2,7 +2,7 @@
 import "@/styles/globals.css";
 
 import { buyerfinderUrl, siteUrl } from "@/lib/links";
-import { mailReady } from "@/lib/site";
+import { mailReady, trendsShown } from "@/lib/site";
 
 interface Props {
   title: string;
@@ -75,7 +75,7 @@ const analyticsId = process.env.GA_MEASUREMENT_ID;
           </span>
         </a>
         <nav class="hidden items-center gap-7 text-[0.9375rem] text-secondary-foreground md:flex">
-          <a href="/trends" class="hover:text-foreground">Trends</a>
+          {trendsShown && <a href="/trends" class="hover:text-foreground">Trends</a>}
           <a href="/about" class="hover:text-foreground">How it works</a>
           {mailReady() && <a href="/subscribe" class="hover:text-foreground">Daily email</a>}
           <a href="/about#mcp" class="hover:text-foreground">MCP</a>

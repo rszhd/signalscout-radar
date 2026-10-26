@@ -7,6 +7,7 @@ import { categoryCounts, lastRunAt, latestRequests } from "@/db/queries.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { formatAge, platforms, toCard, toTiles } from "@/lib/present";
+import { trendsShown } from "@/lib/site.ts";
 import { servicesEnabled } from "@/sort/categories.ts";
 
 const sql = db();
@@ -65,8 +66,12 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
     <section id="categories" class="mx-auto max-w-[1240px] scroll-mt-20 px-4 pt-14 sm:px-8">
       <h2 class="text-2xl font-semibold tracking-tight">Categories</h2>
       <p class="mt-1 text-[0.9375rem] text-muted-foreground">
-        Requests in the last 7 days.{" "}
-        <a href="/trends" class="font-semibold text-primary hover:underline">See the trends</a>
+        Requests in the last 7 days.
+        {trendsShown && (
+          <>
+            {" "}<a href="/trends" class="font-semibold text-primary hover:underline">See the trends</a>
+          </>
+        )}
       </p>
       {software.length > 0 && (
         <>

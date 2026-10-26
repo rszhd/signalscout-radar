@@ -87,3 +87,8 @@ instead of ranking raw totals across sources as if they were demand.
   rows before it is built. Checked locally on sample rows only (a separate
   preview database), desktop and phone screenshots. 94 tests pass, typecheck
   without `.astro/` and build clean.
+- 2026-10-26T21:07+08:00 — Live since d193973; then the owner asked to
+  hide the page first. `trendsShown` in `src/lib/site.ts` is false:
+  `/trends` is a 404, and the menu, home page and sitemap no longer link
+  it. "Where people ask" on tag pages stays, and so do the queries, which
+  the MCP tools use. Turn the switch on to show the page again.

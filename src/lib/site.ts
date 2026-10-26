@@ -22,6 +22,13 @@ export function mailReady(): boolean {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_FROM);
 }
 
+/**
+ * The trends page (US-463), hidden for now (owner, 2026-10-26): off, it is a
+ * 404 and no menu, home page or sitemap links to it. Its queries stay, and
+ * the MCP tools use them.
+ */
+export const trendsShown = false;
+
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,

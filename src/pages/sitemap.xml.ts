@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { categoryCounts } from "@/db/queries.ts";
 import { shownTags } from "@/db/tags.ts";
 import { db } from "@/lib/db";
-import { mailReady } from "@/lib/site.ts";
+import { mailReady, trendsShown } from "@/lib/site.ts";
 
 /** The home page, the about and trends pages, and every category and tag with a request this week. */
 export const GET: APIRoute = async ({ site }) => {
@@ -11,7 +11,7 @@ export const GET: APIRoute = async ({ site }) => {
   const paths = [
     "/",
     "/about",
-    "/trends",
+    ...(trendsShown ? ["/trends"] : []),
     ...(mailReady() ? ["/subscribe"] : []),
     ...counts.filter((c) => c.week > 0).map((c) => `/c/${c.category}`),
     ...tags.filter((t) => t.week > 0).map((t) => `/t/${t.slug}`),

@@ -9,7 +9,10 @@ import { shownDays } from "@/db/queries.ts";
 import { leavingProducts, risingFloor, risingTags, shownSpan, topCategories, topTags } from "@/db/trends.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
+import { trendsShown } from "@/lib/site.ts";
 import { categoryBySlug } from "@/sort/categories.ts";
+
+if (!trendsShown) return new Response("Not found", { status: 404 });
 
 const sql = db();
 const now = new Date();
