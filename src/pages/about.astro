@@ -1,13 +1,16 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import { buyerfinderUrl } from "@/lib/links";
+import { buyerfinderUrl, siteUrl } from "@/lib/links";
 import { contactUrl } from "@/lib/present";
 import { mailReady } from "@/lib/site";
+import { callsPerDay } from "@/mcp/http.ts";
+
+const mcpUrl = `${siteUrl}/mcp`;
 ---
 
 <Layout
   title="How BuyerFinder Radar works"
-  description="How Radar finds public posts where people ask which product to buy, what it shows, and how to have a post removed."
+  description="How Radar finds public posts where people ask which product to buy, what it shows, how to search it from Claude or ChatGPT, and how to have a post removed."
   image="/og/about.png"
 >
   <article class="mx-auto max-w-[760px] px-4 pt-12 sm:px-8">
@@ -49,6 +52,25 @@ import { mailReady } from "@/lib/site";
         </p>
       </Fragment>
     )}
+
+    <h2 id="mcp" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Ask your own AI</h2>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+      Radar is also an MCP server, so Claude or ChatGPT can search it for you: "what CRMs are people leaving this
+      month?", "find posts asking for a standing desk under $400". It is free and needs no sign-in. Add this URL as a
+      custom connector:
+    </p>
+    <p class="mt-4 rounded-xl border bg-card px-4 py-3 font-mono text-[0.9375rem] break-all text-foreground">{mcpUrl}</p>
+    <ul class="mt-4 list-disc space-y-2 pl-6 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+      <li><strong class="font-semibold text-foreground">Claude:</strong> Settings, Connectors, add a custom connector, paste the URL.</li>
+      <li>
+        <strong class="font-semibold text-foreground">ChatGPT</strong> (Plus or Pro): turn on Developer mode under
+        Settings, Connectors, Advanced. Then create a connector with the URL and no authentication.
+      </li>
+    </ul>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+      Your AI sees what this page shows: the last 30 days, excerpts and links, no usernames. One address can make
+      {" "}{callsPerDay} calls a day. The menu names in both apps change from time to time.
+    </p>
 
     <h2 id="remove" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Remove a post</h2>
     <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">

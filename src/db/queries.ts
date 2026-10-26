@@ -70,10 +70,12 @@ export function shownSince(now = new Date()): Date {
 
 /**
  * A seen post older than the look-back of every plan never comes back in a
- * search, so its row only takes space. Requests are not deleted.
+ * search, so its row only takes space; nor does an old day's MCP call count
+ * (US-462). Requests are not deleted.
  */
 export async function forgetOld(sql: Sql, now = new Date()) {
   await sql`delete from seen_posts where seen_at < ${shownSince(now)}`;
+  await sql`delete from mcp_calls where day < ${shownSince(now).toISOString().slice(0, 10)}::date`;
 }
 
 /** The categories the page may show; a hidden kind's rows stay stored (US-429). */

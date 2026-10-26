@@ -32,20 +32,20 @@ reasoning.
 
 ## Acceptance
 
-- [ ] `/mcp` on the web service answers MCP over streamable HTTP, built
+- [x] `/mcp` on the web service answers MCP over streamable HTTP, built
       with the official TypeScript SDK, with no sign-in
-- [ ] Tools: `search_requests` (text, category, tag, platform, date range),
+- [x] Tools: `search_requests` (text, category, tag, platform, date range),
       `get_request` (one by id), `list_categories` (with counts),
       `trends` (requests per category or tag over time); each tool's
       description says what it returns, and a test checks every schema
-- [ ] The tools query through a Postgres role that can only select from
+- [x] The tools query through a Postgres role that can only select from
       `requests` (and `tags`), and every query skips `removed_at`
-- [ ] No author is returned, the same rule as the page
-- [ ] A cap on calls per IP per day and on rows per call, so one caller
+- [x] No author is returned, the same rule as the page
+- [x] A cap on calls per IP per day and on rows per call, so one caller
       cannot read the whole table in a loop
-- [ ] The tools sit behind one access check that lets every call through
+- [x] The tools sit behind one access check that lets every call through
       today, so premium adds sign-in there without changing a tool
-- [ ] The About page says the MCP URL exists and how to add it
+- [x] The About page says the MCP URL exists and how to add it
 - [ ] Connected and used from claude.ai and from ChatGPT, shown locally to
       the owner before the push
 
@@ -64,3 +64,16 @@ reasoning.
   page, and the About page must say what MCP reaches.
 
 ## Log
+- 2026-10-26T20:47+08:00 — Built, not pushed. `src/mcp/` (server, HTTP
+  handler, tests), `/mcp` route, migration 004 (`radar_reader` role with
+  column grants on `requests` and `tags`; `mcp_calls` counter), About
+  section. SDK 1.32.1, pinned: 1.32.2 was 3 days old. Stateless, plain
+  JSON answers, GET and DELETE are 405. Five tools: a fifth, `list_tags`,
+  gives the slugs the search filters by. Every tool keeps to the 30 shown
+  days, my default so the About page stays true; older rows wait for
+  premium. 25 rows a call, 200 tool calls an IP a UTC day; listing tools
+  is free. Tests: role cannot read `subscribers` or `phrase`, cannot write;
+  `%` in a search matches itself. Checked with the SDK's own client on the
+  dev server and inside the built image (sample rows). Not yet connected
+  from claude.ai or ChatGPT: both connect from their own cloud, so that
+  waits for the deploy. 102 tests pass, typecheck and build clean.
