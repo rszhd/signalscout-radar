@@ -5,7 +5,7 @@
 import { categorySlugs } from "../sort/categories.ts";
 import { listedTagRows, proposalShownAt } from "../sort/tags.ts";
 import type { Sql } from "./client.ts";
-import type { RequestRow } from "./queries.ts";
+import { type RequestRow, shownSince } from "./queries.ts";
 
 export interface TagRow {
   slug: string;
@@ -36,24 +36,25 @@ export async function proposeTags(sql: Sql, proposals: readonly TagRow[]): Promi
 }
 
 /**
- * Show every hidden tag that live posts now carry often enough. Returns the
- * slugs shown, for the run's log.
+ * Show every hidden tag that posts of the shown days now carry often enough.
+ * Returns the slugs shown, for the run's log.
  */
-export async function showBusyProposals(sql: Sql): Promise<string[]> {
+export async function showBusyProposals(sql: Sql, now = new Date()): Promise<string[]> {
   const rows = await sql<{ slug: string }[]>`
     update tags set shown_at = now()
     where shown_at is null and slug in (
-      select unnest(tags) as slug from requests where removed_at is null
+      select unnest(tags) as slug from requests where removed_at is null and posted_at >= ${shownSince(now)}
       group by 1 having count(*) >= ${proposalShownAt})
     returning slug`;
   return rows.map((row) => row.slug);
 }
 
-/** Hidden tags no live post carries any more: proposals that never caught on. */
-export async function forgetIdleProposals(sql: Sql): Promise<void> {
+/** Hidden tags no post of the shown days carries any more: proposals that never caught on. */
+export async function forgetIdleProposals(sql: Sql, now = new Date()): Promise<void> {
   await sql`
     delete from tags t where t.shown_at is null
-      and not exists (select 1 from requests r where r.removed_at is null and t.slug = any (r.tags))`;
+      and not exists (select 1 from requests r
+        where r.removed_at is null and r.posted_at >= ${shownSince(now)} and t.slug = any (r.tags))`;
 }
 
 /** Every tag the sort may choose from, shown or not, so a proposal is reused. */
@@ -95,10 +96,11 @@ export async function onlyShown(sql: Sql, slugs: readonly string[]): Promise<str
   return rows.map((row) => row.slug);
 }
 
-export async function requestsTagged(sql: Sql, slug: string, limit = 100): Promise<RequestRow[]> {
+export async function requestsTagged(sql: Sql, slug: string, limit = 100, now = new Date()): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select id::text, platform, url, channel, title, excerpt, wants, category, posted_at as "postedAt"
     from requests
     where removed_at is null and ${slug} = any (tags) and category in ${sql(categorySlugs as string[])}
+      and posted_at >= ${shownSince(now)}
     order by posted_at desc limit ${limit}`;
 }

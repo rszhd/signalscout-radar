@@ -56,11 +56,24 @@ export async function saveRequest(
     on conflict (platform, external_id) do nothing`;
 }
 
-/** Thirty days is what the page shows; older rows serve nobody. */
+/**
+ * How far back the page, the feeds and the tag counts reach. Older requests
+ * stay stored (owner, 2026-10-26): they are the history for trends and for
+ * MCP (US-462), so only what is shown has this limit.
+ */
+export const shownDays = 30;
+
+/** The start of what is shown, for a query's `posted_at >=`. */
+export function shownSince(now = new Date()): Date {
+  return new Date(now.getTime() - shownDays * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * A seen post older than the look-back of every plan never comes back in a
+ * search, so its row only takes space. Requests are not deleted.
+ */
 export async function forgetOld(sql: Sql, now = new Date()) {
-  const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  await sql`delete from requests where posted_at < ${cutoff} and removed_at is null`;
-  await sql`delete from seen_posts where seen_at < ${cutoff}`;
+  await sql`delete from seen_posts where seen_at < ${shownSince(now)}`;
 }
 
 /** The categories the page may show; a hidden kind's rows stay stored (US-429). */
@@ -69,17 +82,18 @@ const shown = () => categorySlugs as string[];
 const columns = (sql: Sql) => sql`
   id::text, platform, url, channel, title, excerpt, wants, category, posted_at as "postedAt"`;
 
-export async function latestRequests(sql: Sql, limit = 50): Promise<RequestRow[]> {
+export async function latestRequests(sql: Sql, limit = 50, now = new Date()): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests
-    where removed_at is null and category in ${sql(shown())}
+    where removed_at is null and category in ${sql(shown())} and posted_at >= ${shownSince(now)}
     order by posted_at desc limit ${limit}`;
 }
 
-export async function requestsIn(sql: Sql, category: string, limit = 100): Promise<RequestRow[]> {
+export async function requestsIn(sql: Sql, category: string, limit = 100, now = new Date()): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests
     where removed_at is null and category = ${category} and category in ${sql(shown())}
+      and posted_at >= ${shownSince(now)}
     order by posted_at desc limit ${limit}`;
 }
 

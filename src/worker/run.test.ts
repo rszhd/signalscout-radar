@@ -401,13 +401,36 @@ describe("hidden categories", () => {
               values ('reddit', 's1', 'https://r/1', 'Need a logo', 'A logo', 'design-services', ${noon}, 'r/DesignJobs'),
                      ('reddit', 'p1', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop')`;
 
-    const shown = (await latestRequests(sql)).map((row) => row.category);
+    const shown = (await latestRequests(sql, 50, noon)).map((row) => row.category);
     const counts = (await categoryCounts(sql, noon)).map((row) => row.category);
 
     expect(shown).toEqual(["computers"]);
     expect(counts).toEqual(["computers"]);
-    expect(await requestsIn(sql, "design-services")).toEqual([]);
+    expect(await requestsIn(sql, "design-services", 100, noon)).toEqual([]);
     const [{ count }] = await sql<{ count: string }[]>`select count(*)::text from requests`;
     expect(count).toBe("2");
+  });
+});
+
+describe("old requests", () => {
+  it("stay stored after 30 days, but the page and tag pages show only the last 30", async () => {
+    const { forgetOld, latestRequests, requestsIn } = await import("../db/queries.ts");
+    const { requestsTagged } = await import("../db/tags.ts");
+    const old = new Date(noon.getTime() - 40 * 24 * 60 * 60 * 1000);
+    await sql`insert into requests (platform, external_id, url, excerpt, wants, category, posted_at, phrase, tags)
+              values ('reddit', 'old', 'https://r/1', 'Which laptop?', 'A laptop', 'computers', ${old}, 'r/SuggestALaptop', ${["laptops"]}),
+                     ('reddit', 'new', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop', ${["laptops"]})`;
+    await sql`insert into seen_posts (platform, external_id, seen_at) values ('reddit', 'old', ${old})`;
+
+    await forgetOld(sql, noon);
+
+    const [{ count }] = await sql<{ count: string }[]>`select count(*)::text from requests`;
+    expect(count).toBe("2");
+    const [{ seen }] = await sql<{ seen: string }[]>`select count(*)::text as seen from seen_posts`;
+    expect(seen).toBe("0");
+    const ids = async (rows: Promise<{ url: string }[]>) => (await rows).map((row) => row.url);
+    expect(await ids(latestRequests(sql, 50, noon))).toEqual(["https://r/2"]);
+    expect(await ids(requestsIn(sql, "computers", 100, noon))).toEqual(["https://r/2"]);
+    expect(await ids(requestsTagged(sql, "laptops", 100, noon))).toEqual(["https://r/2"]);
   });
 });

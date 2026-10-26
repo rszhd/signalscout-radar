@@ -57,8 +57,10 @@ reasoning.
 - Open, the owner's: whether Reddit's and X's terms allow access to
   excerpts of their posts through an API, free or paid. Not read yet; no
   claim made either way.
-- "Enough data" cannot grow while `forgetOld` (`src/db/queries.ts`)
-  deletes requests older than 30 days. A back-fill (probe proposed
-  2026-10-26) waits on the same change.
+- Since 2026-10-26 Radar keeps requests older than 30 days (owner); the
+  page, feeds and tag pages still show only the last 30 (`shownDays` in
+  `src/db/queries.ts`). The tools may reach further back. The About page
+  and footer say "nothing older than 30 days": that stays true for the
+  page, and the About page must say what MCP reaches.
 
 ## Log

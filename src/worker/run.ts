@@ -294,9 +294,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
     await forgetOld(sql, start);
     // US-456: a proposed tag enough posts carry is shown; one no post carries
     // any more is dropped.
-    const shown = await showBusyProposals(sql);
+    const shown = await showBusyProposals(sql, start);
     if (shown.length > 0) log(`tags now shown: ${shown.join(", ")}`);
-    await forgetIdleProposals(sql);
+    await forgetIdleProposals(sql, start);
   } catch (error) {
     await save();
     await sql`update runs set finished_at = ${now()}, outcome = ${(error as Error).message} where id = ${runId}`;
