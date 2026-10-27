@@ -11,6 +11,7 @@ export const GET: APIRoute = async ({ site }) => {
   const paths = [
     "/",
     "/about",
+    "/mcp-server",
     ...(trendsShown ? ["/trends"] : []),
     ...(mailReady() ? ["/subscribe"] : []),
     ...counts.filter((c) => c.week > 0).map((c) => `/c/${c.category}`),

@@ -1,0 +1,91 @@
+---
+/**
+ * How to connect a person's own AI to Radar's MCP server (US-462). Its own
+ * page, so the menu's MCP link does not land in the middle of About.
+ */
+import Layout from "@/layouts/Layout.astro";
+import { siteUrl } from "@/lib/links";
+import { callsPerDay } from "@/mcp/http.ts";
+import { maxRows } from "@/mcp/server.ts";
+
+const mcpUrl = `${siteUrl}/mcp`;
+const questions = [
+  "Which CRMs are people asking to leave, and why?",
+  "Find posts asking for a standing desk under $400.",
+  "How many people asked for a password manager each week?",
+  "Which tags grew the most in the last two weeks?",
+];
+const tools: [string[], string][] = [
+  [["search_requests"], "finds posts by words, category, tag, platform and date, newest first"],
+  [["count_requests"], "counts the same posts, in total or by day, week, month, category, tag or platform"],
+  [["get_request"], "reads one post"],
+  [["list_categories", "list_tags"], "list what Radar sorts posts into, with how many posts each has"],
+  [["trends"], "gives the rising tags, the products people want to leave, and the most requested tags and categories"],
+];
+const prose = "text-[1.0625rem] leading-relaxed text-secondary-foreground";
+
+Astro.response.headers.set("Cache-Control", "public, max-age=3600");
+---
+
+<Layout
+  title="Ask your AI about product requests | BuyerFinder Radar"
+  description="Connect Claude or ChatGPT to BuyerFinder Radar's MCP server and search every post where people ask what to buy. Free, no sign-in."
+>
+  <article class="mx-auto max-w-[760px] px-4 pt-12 sm:px-8">
+    <p class="text-[0.8125rem] font-semibold tracking-wider text-primary uppercase">MCP server</p>
+    <h1 class="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">Ask your own AI</h1>
+    <p class={`mt-6 ${prose}`}>
+      Radar is an MCP server, so Claude or ChatGPT can search it for you. Your AI reads every post Radar has kept,
+      not only the last 30 days on these pages. It is free and needs no sign-in.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">The URL</h2>
+    <p class="mt-4 rounded-xl border bg-card px-4 py-3 font-mono text-[0.9375rem] break-all text-foreground">{mcpUrl}</p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">Add it to your AI</h2>
+    <ul class={`mt-4 list-disc space-y-3 pl-6 ${prose}`}>
+      <li><strong class="font-semibold text-foreground">Claude:</strong> Settings, Connectors, add a custom connector, paste the URL.</li>
+      <li>
+        <strong class="font-semibold text-foreground">ChatGPT</strong> (Plus or Pro): turn on Developer mode under
+        Settings, Connectors, Advanced. Then create a connector with the URL and no authentication.
+      </li>
+      <li>
+        <strong class="font-semibold text-foreground">Claude Code:</strong>
+        <code class="mt-2 block rounded-lg border bg-card px-3 py-2 font-mono text-[0.875rem] [overflow-wrap:anywhere] text-foreground">claude mcp add --transport http buyerfinder-radar {mcpUrl}</code>
+      </li>
+    </ul>
+    <p class={`mt-4 ${prose}`}>The menu names in Claude and ChatGPT change from time to time.</p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">What to ask</h2>
+    <ul class={`mt-4 list-disc space-y-2 pl-6 ${prose}`}>
+      {questions.map((question) => <li>"{question}"</li>)}
+    </ul>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">What your AI can do</h2>
+    <ul class={`mt-4 list-disc space-y-2 pl-6 ${prose}`}>
+      {tools.map(([names, does]) => (
+        <li>
+          {names.map((name, i) => (
+            <>
+              {i > 0 && " and "}
+              <code class="font-mono text-[0.9375rem] text-foreground">{name}</code>
+            </>
+          ))}{" "}
+          {does}.
+        </li>
+      ))}
+    </ul>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">What it sees, and the limits</h2>
+    <ul class={`mt-4 list-disc space-y-2 pl-6 ${prose}`}>
+      <li>The same as these pages: a short excerpt of each post and a link to the original. No usernames.</li>
+      <li>Every post Radar has kept, from late September 2026 on.</li>
+      <li>Read only. Your AI cannot change anything.</li>
+      <li>{maxRows} posts a call, and {callsPerDay} calls a day from one address.</li>
+      <li>
+        The counts follow the subreddits and X searches Radar reads, described on the{" "}
+        <a href="/about" class="font-semibold text-primary hover:underline">How it works</a> page, not the whole market.
+      </li>
+    </ul>
+  </article>
+</Layout>

@@ -87,3 +87,8 @@ reasoning.
   list and the footer said "nothing older than 30 days"; they now say the
   pages show 30 days and MCP reaches further. 104 tests pass, typecheck
   without `.astro/` and build clean; checked with the SDK client locally.
+- 2026-10-27T10:28+08:00 — The menu's MCP link opened About at its MCP
+  section, so the two looked like one page (owner). `/mcp-server` is now
+  its own page: the URL, how to add it to Claude, ChatGPT and Claude Code,
+  example questions, the tools, and the limits. About keeps one line that
+  links there; the menu and sitemap point to it.
