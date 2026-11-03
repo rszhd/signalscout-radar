@@ -92,5 +92,5 @@ thread's own, and drops a thread older than the plan's window.
   gun-related); firearm threads kept 2 -> 0. Flocking adhesive and an old
   La Marzocco are now kept; solar generator, fence paint and epoxy moved to
   Home improvement. "Steel prairie dog target?" is kept under Fishing &
-  hunting: the owner to say if shooting targets are refused too. No music,
+  hunting; the owner then refused shooting targets too. No music,
   food or garden post was in the samples.

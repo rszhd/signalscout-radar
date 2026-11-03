@@ -41,7 +41,7 @@ export const categories = [
   // Added for the niches Radar's forums and small shops serve (owner,
   // 2026-11-03, US-511): a post no category fits is sorted "other" and lost.
   { slug: "music-gear", name: "Music gear", kind: "goods", covers: "guitars, basses, amps, pedals, keyboards and pianos, drums, DJ gear" },
-  { slug: "fishing-hunting", name: "Fishing & hunting", kind: "goods", covers: "rods, reels, lures, tackle, fish finders, hunting optics, archery, blinds and gear; never firearms or ammunition" },
+  { slug: "fishing-hunting", name: "Fishing & hunting", kind: "goods", covers: "rods, reels, lures, tackle, fish finders, hunting optics, archery, blinds and gear; never firearms, ammunition or shooting targets" },
   { slug: "food-drink", name: "Food & drink", kind: "goods", covers: "coffee beans, tea, sauces and rubs, specialty food, home-brewing and winemaking supplies" },
   { slug: "hobbies-crafts", name: "Hobbies & crafts", kind: "goods", covers: "sewing machines, yarn, art supplies, model kits, board games, pens and stationery" },
   { slug: "home-improvement", name: "Home improvement & energy", kind: "goods", covers: "paint, flooring, building materials, plumbing and electrical fixtures, water heaters, solar panels, home batteries, generators" },

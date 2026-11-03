@@ -65,6 +65,7 @@ describe("the prompt for physical goods (US-511)", () => {
 
   it("refuses firearms and ammunition, and keeps other hunting gear", () => {
     expect(prompt).toContain("which firearm, ammunition or firearm part to buy");
+    expect(prompt).toContain("shooting targets, gun cleaning kits");
     expect(prompt).toContain("Hunting optics, archery, clothing and other hunting gear still count");
     expect(prompt).toContain("Software, an app, a website");
   });
