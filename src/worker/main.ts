@@ -19,7 +19,6 @@ import { z } from "zod";
 import { connect } from "../db/client.ts";
 import { allTags } from "../db/tags.ts";
 import { createMailer } from "../lib/mail.ts";
-import { servicesEnabled } from "../sort/categories.ts";
 import { createSorter } from "../sort/categorize.ts";
 import { sendDigests } from "./digest.ts";
 import { forumsForTurn } from "./known-forums.ts";
@@ -61,18 +60,19 @@ const registry = createSourceRegistry({ definitions: builtInSources, runtime });
 const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
 
 /**
- * Forums take 75% of each run (US-511, X was read until then). Of the rest,
- * software subreddits, goods subreddits and the Reddit keyword search get 10%
- * each; with services on (US-429), the subreddits where people hire get half
- * of the goods share. The subreddits are read every third hour, so in the
- * other hours their share passes on. What a plan leaves unspent
- * passes to the plans after it. Before shares, the money ran out in list order
- * and one production run kept 292 goods requests and 1 software request.
+ * Physical goods only (owner, 2026-11-03, US-511): no software and no hiring
+ * subreddits. Reddit and forums split each run's money half and half, the
+ * owner's word the same day: the goods subreddits get 35%, the Reddit keyword
+ * search 15%, the forums the other 50%. The subreddits are read every third
+ * hour, so in the other hours their share passes to the keyword search. What
+ * a plan leaves unspent passes to the plans after it, and the forums come
+ * last, so they get what Reddit leaves.
  *
- * Software subreddits give fewer requests than goods ones: 4-8 in 24 posts
- * (probe of 2026-09-26), against 20-24 in the laptop and headphone ones. The
- * weak ones — SaaS, iosapps, ecommerce, macapps, shopify, msp, emailmarketing,
- * dataengineering, 0-2 in 24 — are left out.
+ * Goods subreddits give 20-24 requests in 24 posts in the laptop and
+ * headphone ones (probe of 2026-09-26). Mattress, RobotVacuums, Televisions,
+ * airpurifiers, Ultralight, projectors and Tools were added after a probe of
+ * 20 candidates on 2026-11-03 (7-16 requests a page); MechanicalKeyboards,
+ * homelab, onebag, fountainpens and headphones gave few and were left out.
  *
  * Prices are the connectors' own (`builtInSources`); the worst case is a full
  * page billed at that price. `pnpm phrases` ranks every input by requests per
@@ -95,8 +95,8 @@ const subreddits = {
 };
 
 /**
- * Forums (US-511), first and with three quarters of each run: the owner chose
- * 12 forums an hour at a $0.75 day, Reddit getting what they leave. Each run
+ * Forums (US-511), last and with half of each run (owner, 2026-11-03: $1 a
+ * day, "50-50 between reddit and forums"), 12 forums an hour. Each run
  * reads 12 niches of the 52, each at its next forum (`forumsForTurn`). One
  * feed read is one call through the browser: Bright Data bills nothing for
  * it, so its cost is the browser's, estimated as BuyerFinder does
@@ -135,7 +135,7 @@ const forumPlan: SearchPlan | undefined = forumsReady
         },
       }).create(runtime),
       credentials: { apiKey: env.BRIGHTDATA_API_KEY, unlockerZone: env.BRIGHTDATA_UNLOCKER_ZONE },
-      share: 0.75,
+      share: 0.5,
       phrases: [],
       feeds: (turn) => forumsForTurn(turn, 12).map((forum) => ({ name: forum.name, url: forum.feed })),
       // The first read of a forum reaches back two days; `seen_posts` removes
@@ -155,48 +155,12 @@ const forumPlan: SearchPlan | undefined = forumsReady
     }
   : undefined;
 
-/**
- * Where people hire a business service (US-429). About three posts in four
- * offer work instead, and those are refused before the model, for free. Off
- * while `servicesEnabled` is false; its 10% then goes to the goods subreddits.
- */
-const servicesPlan: SearchPlan = {
-  platform: "reddit",
-  source: reddit,
-  credentials: redditKey,
-  share: 0.05,
-  ...subreddits,
-  channels: ["forhire", "hiring", "slavelabour", "HireaWriter", "DesignJobs"],
-  ...redditPrices,
-};
-
 const plans: SearchPlan[] = [
-  ...(forumPlan ? [forumPlan] : []),
   {
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.1,
-    ...subreddits,
-    channels: [
-      "sysadmin",
-      "selfhosted",
-      "webdev",
-      "devops",
-      "Notetaking",
-      "CRM",
-      "ProductivityApps",
-      "Bookkeeping",
-      "androidapps",
-    ],
-    ...redditPrices,
-  },
-  ...(servicesEnabled ? [servicesPlan] : []),
-  {
-    platform: "reddit",
-    source: reddit,
-    credentials: redditKey,
-    share: servicesEnabled ? 0.05 : 0.1,
+    share: 0.35,
     ...subreddits,
     channels: [
       "SuggestALaptop",
@@ -217,6 +181,13 @@ const plans: SearchPlan[] = [
       "homegym",
       "Monitors",
       "tablets",
+      "Mattress",
+      "RobotVacuums",
+      "Televisions",
+      "airpurifiers",
+      "Ultralight",
+      "projectors",
+      "Tools",
     ],
     ...redditPrices,
   },
@@ -224,7 +195,7 @@ const plans: SearchPlan[] = [
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.1,
+    share: 0.15,
     phrases: [
       "can anyone recommend",
       "which should I buy",
@@ -237,6 +208,7 @@ const plans: SearchPlan[] = [
     limit: 25,
     ...redditPrices,
   },
+  ...(forumPlan ? [forumPlan] : []),
 ];
 
 /**

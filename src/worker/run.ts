@@ -243,7 +243,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           const toSort = fresh.filter(
             (post) =>
               !offersWork(post.title, post.text) &&
-              (!input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`)),
+              (!input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`, post.title)),
           );
           // What the filter set aside is handled: it will never be sorted.
           await markSeen(sql, plan.platform, fresh.filter((post) => !toSort.includes(post)).map((post) => post.externalId));

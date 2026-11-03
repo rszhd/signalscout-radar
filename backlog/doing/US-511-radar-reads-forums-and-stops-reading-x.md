@@ -24,8 +24,16 @@ disable X". Answers given the same day:
 - **The free phrase filter first**, as for X and the Reddit keyword search.
   Most forum threads are not product requests.
 - **X posts are hidden at once**, on the page, the emails, RSS and MCP.
-- **Budget $0.75 a day** (was $1), so Reddit gets what the forums leave.
-  `RADAR_DAILY_CAP_USD` is the owner's edit on the box.
+- **Budget $1 a day, half Reddit, half forums** (the owner first said $0.5,
+  then $0.75, then "up the budget to $1 daily, 50-50 between reddit and
+  forums"). `RADAR_DAILY_CAP_USD` is the owner's edit on the box.
+- **Physical goods only**: "remove software and hiring/service for now and
+  focus on physical goods for niche small business". `softwareEnabled` and
+  `servicesEnabled` are false; the software subreddits are gone; the forum
+  niches about hosting, SEO, programming, selling online, small business,
+  money, property and travel are left out (164 forums, 44 niches).
+- **Filter**: "add the best/vs phrases, ensure the filters are good and
+  optimized for physical products".
 
 ## Cost
 
@@ -49,7 +57,8 @@ thread's own, and drops a thread older than the plan's window.
 - [x] X posts hidden from page, emails, RSS, MCP (migration 005 sets
       `removed_at` to 2026-11-03 00:00 UTC on X rows); copy says Reddit and forums.
 - [x] Forum posts show with the forum's name.
-- [ ] One local run measured against the Browser Use balance.
+- [x] One local run measured against the Browser Use balance.
+- [x] Filter tuned on 219 + 223 real forum posts; software and services off.
 - [ ] Owner viewed the local page; box `.env` has the forum keys; pushed on
       the owner's word.
 
@@ -59,3 +68,14 @@ thread's own, and drops a thread older than the plan's window.
   list; Reddit plans 10% each, plus what forums leave. A cut post's thread
   page is read only after the model keeps it. 107 tests pass; typecheck,
   build and the worker image's imports pass. Not run against live forums yet.
+- 2026-11-03 12:07 +08: live run of one turn (12 forums, `forumsForTurn`
+  498243): 10 feeds gave 219 posts (consimworld and thehulltruth none), all
+  through the browser, 0 Bright Data units. Old filter passed 7 (2 requests);
+  the new title and buying phrases pass 33 of 219, and 46 of 223 BuyerFinder
+  forum posts (was 12). Model (Claude bridge) kept 15 of 33; 12 were cut
+  posts: 4 complete and kept, 7 started before the 48-hour window, 1
+  Bright Data 502. 5 saved. Engine estimate $0.0184 for the 12 pages; Browser
+  Use balance $0.3136 -> $0.2931 for 24 browsers (not settled; the proxy's
+  own charge is not in it). home-barista.com's feed listed replies
+  (`feed.php`); Radar's copy now reads `feed.php?mode=topics`, not yet
+  checked live. 20 goods subreddits probed (one page each, $0.038): 7 added.

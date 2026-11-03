@@ -13,10 +13,10 @@ beforeEach(async () => {
   ({ sql, drop } = await createTestDatabase());
   await sql`insert into tags (slug, name, category, kind, shown_at) values
     ('standing-desks', 'Standing desks', 'home-office', 'product', ${now}),
-    ('alt-hubspot', 'Alternatives to HubSpot', 'sales-crm', 'alt', ${now})`;
+    ('alt-bose', 'Alternatives to Bose', 'audio', 'alt', ${now})`;
   await sql`insert into requests (platform, external_id, url, channel, excerpt, wants, category, posted_at, phrase, tags, removed_at) values
     ('reddit', 'a', 'https://reddit.com/a', 'OfficeChairs', 'Which standing desk under $400?', 'A standing desk under $400', 'home-office', ${daysAgo(1)}, 'r/OfficeChairs', ${["standing-desks"]}, null),
-    ('x', 'b', 'https://x.com/i/status/b', 'what app do you', 'Leaving HubSpot, what CRM 100%?', 'A cheaper CRM', 'sales-crm', ${daysAgo(2)}, 'what app do you', ${["alt-hubspot"]}, null),
+    ('x', 'b', 'https://x.com/i/status/b', 'what app do you', 'Leaving Bose, what CRM 100%?', 'A cheaper CRM', 'audio', ${daysAgo(2)}, 'what app do you', ${["alt-bose"]}, null),
     ('reddit', 'c', 'https://reddit.com/c', 'OfficeChairs', 'Old standing desk post', 'A standing desk', 'home-office', ${daysAgo(40)}, 'r/OfficeChairs', ${["standing-desks"]}, null),
     ('reddit', 'd', 'https://reddit.com/d', 'OfficeChairs', 'Removed standing desk post', 'A standing desk', 'home-office', ${daysAgo(1)}, 'r/OfficeChairs', ${["standing-desks"]}, ${now})`;
 });
@@ -71,7 +71,7 @@ describe("MCP", () => {
     expect(all.data[1].subreddit).toBeNull();
 
     expect((await call("search_requests", { query: "standing desk" })).data).toHaveLength(2);
-    expect((await call("search_requests", { tag: "alt-hubspot" })).data[0].url).toBe("https://x.com/i/status/b");
+    expect((await call("search_requests", { tag: "alt-bose" })).data[0].url).toBe("https://x.com/i/status/b");
     expect((await call("search_requests", { platform: "forum", category: "home-office" })).data).toEqual([]);
     // "%" is a character to find, not "anything".
     expect((await call("search_requests", { query: "%%" })).data).toEqual([]);
@@ -97,7 +97,7 @@ describe("MCP", () => {
     ]);
     expect((await call("count_requests", { by: "tag" })).data).toEqual([
       { group: "standing-desks", count: 2 },
-      { group: "alt-hubspot", count: 1 },
+      { group: "alt-bose", count: 1 },
     ]);
   });
 
@@ -106,10 +106,10 @@ describe("MCP", () => {
     expect(categories.find((row) => row.slug === "home-office")?.requests).toBe(2);
     const recent = (await call("list_categories", { since: daysAgo(30).toISOString() })).data as typeof categories;
     expect(recent.find((row) => row.slug === "home-office")?.requests).toBe(1);
-    expect((await call("list_tags", { category: "sales-crm" })).data).toEqual([
-      { slug: "alt-hubspot", name: "Alternatives to HubSpot", category: "sales-crm", kind: "alt", requests: 1, page: "https://radar.buyerfinder.run/t/alt-hubspot" },
+    expect((await call("list_tags", { category: "audio" })).data).toEqual([
+      { slug: "alt-bose", name: "Alternatives to Bose", category: "audio", kind: "alt", requests: 1, page: "https://radar.buyerfinder.run/t/alt-bose" },
     ]);
-    expect((await call("trends", { view: "leaving" })).data).toEqual([{ slug: "alt-hubspot", name: "Alternatives to HubSpot", count: 1 }]);
+    expect((await call("trends", { view: "leaving" })).data).toEqual([{ slug: "alt-bose", name: "Alternatives to Bose", count: 1 }]);
   });
 
   it("refuses a bad argument without running a query", async () => {

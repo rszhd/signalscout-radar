@@ -21,7 +21,7 @@ import { categoryBySlug, categorySlugs, offeredCategories } from "../sort/catego
 /** The most rows one call returns, so a caller pages through a few at a time. */
 export const maxRows = 25;
 
-const instructions = `BuyerFinder Radar collects public posts from Reddit and forums where someone asks which product to buy or use, or whom to hire, and sorts them by category and tag. Each request has an excerpt, a one-line "wants" summary, and a link to the original post. The tools reach every request Radar has kept, from late September 2026 on; any date range can be asked for. Counts reflect the subreddits and X searches Radar reads, not the whole market. Call list_categories or list_tags first to learn the slugs that the other tools filter by. Link people to the post's url so they can answer it there.`;
+const instructions = `BuyerFinder Radar collects public posts from Reddit and forums where someone asks which physical product to buy, and sorts them by category and tag. Each request has an excerpt, a one-line "wants" summary, and a link to the original post. The tools reach every request Radar has kept, from late September 2026 on; any date range can be asked for. Counts reflect the subreddits and forums Radar reads, not the whole market. Call list_categories or list_tags first to learn the slugs that the other tools filter by. Link people to the post's url so they can answer it there.`;
 
 interface RequestOut {
   id: string;
@@ -105,7 +105,7 @@ export function createRadarServer(sql: Sql, now: () => Date = () => new Date()):
     "search_requests",
     {
       title: "Search product requests",
-      description: `Find posts where people ask what to buy or whom to hire, newest first, across the whole history. Filters combine. "query" matches words in the post and its summary. Returns up to ${maxRows} requests, each with id, platform, url, subreddit (null for a forum), title, excerpt, wants, category, tags and posted_at. To read further back, pass the oldest posted_at you got as "until". To count rather than read, use count_requests.`,
+      description: `Find posts where people ask what to buy, newest first, across the whole history. Filters combine. "query" matches words in the post and its summary. Returns up to ${maxRows} requests, each with id, platform, url, subreddit (null for a forum), title, excerpt, wants, category, tags and posted_at. To read further back, pass the oldest posted_at you got as "until". To count rather than read, use count_requests.`,
       inputSchema: { ...filters, limit: z.number().int().min(1).max(maxRows).default(10) },
       annotations: readOnly,
     },

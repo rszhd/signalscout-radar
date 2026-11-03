@@ -1,8 +1,8 @@
 # SignalScout Radar
 
 A free public page of people asking which product to use or buy, sorted by
-category. A product here is anything a person can pick: software, an app, a
-gadget, a piece of gear. It lives at **radar.buyerfinder.run**.
+category. A product here is a physical thing: a gadget, a piece of gear, a
+tool, a part or a supply. It lives at **radar.buyerfinder.run**.
 
 Every hour a worker searches Reddit, and the newest threads of 12 forums from
 different niches, for posts like *"can anyone

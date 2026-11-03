@@ -28,6 +28,49 @@ describe("readsLikeRequest", () => {
   });
 });
 
+describe("readsLikeRequest on a forum title (US-511)", () => {
+  // Real forum titles, 2026-11-03: a request often has no question mark.
+  it.each([
+    "Meat slicer recommendations",
+    "Recommend Me a RUT (Recreation and Utility Truck)",
+    "[WTB] Espro Toroid 12oz pitcher (2008-2014)",
+    "O-ring source needed",
+    "Mk8/8.5 Subwoofers: Stock HK vs. Mk7 Fender vs. ARS24 vs. RS-A",
+    "8\" Powermatic vs Jet 8\" jointer",
+    "Upgrading Table Saw and Need Advice",
+    "Looking for a budget/starter hand tool set.",
+    "Where to buy Spares for Trimbridge Edge Bander",
+    "Best sources for L-Carnatine",
+    "280 Ackley or short barreled 7 PRC?",
+    "anyone using Hercules 2 1/4 hp router in a table for $100",
+    "Bosch PBD Anyone?",
+    "Need Worksharp WS3000 slotted sandpaper",
+  ])("keeps %s", (title) => {
+    expect(readsLikeRequest(`${title} Some text with no question.`, title)).toBe(true);
+  });
+
+  it.each([
+    "2026 SEMA Thread",
+    "[FS] Eureka Olympus E",
+    "The Best Way to Attach a Torsion-Box Top",
+    "Need some humor here.",
+    "need to write a book or at least a long story",
+    "Interesting BBQ Sauce",
+  ])("drops %s", (title) => {
+    expect(readsLikeRequest(`${title} Some text with no question.`, title)).toBe(false);
+  });
+
+  it.each([
+    "Do any of you use this meat grinder? It seems too good a deal.",
+    "Just wanna see what other people are using to fuel while riding. Gels, drink mixes?",
+    "Has anyone used this solar generator? It is expensive but interesting.",
+    "If you had to start over, what are the first 3 knives you'd buy?",
+    "What is the best peptide to tighten up loose skin?",
+  ])("keeps a body that asks: %s", (text) => {
+    expect(readsLikeRequest(text, "A title")).toBe(true);
+  });
+});
+
 describe("offersWork", () => {
   it.each(["[For Hire] Web designer", "[FOR HIRE] Card Artist", "[Offer] Logo design", "(Hire Me) Copywriter"])(
     "sees an offer in %s",

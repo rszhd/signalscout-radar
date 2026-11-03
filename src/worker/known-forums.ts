@@ -2,7 +2,10 @@
  * The forums Radar reads, each through its newest-threads feed (US-511).
  * Copied from BuyerFinder (signalscout-lookout `src/worker/known-forums.ts`,
  * 1856d53): each one's feed listed threads in the feed survey of 2026-11-01.
- * Hosts have no leading "www.".
+ * Hosts have no leading "www.". Without the niches whose threads ask for
+ * software, services or money rather than physical goods (owner, 2026-11-03:
+ * "focus on physical goods"): web hosting, SEO, programming, ecommerce
+ * sellers, small business owners, personal finance, real estate, travel.
  */
 export interface KnownForum {
   readonly host: string;
@@ -52,7 +55,7 @@ export const knownForums: readonly KnownForum[] = [
   { host: "coffeeforums.co.uk", name: "Coffee Forums UK", niche: "coffee", program: "xenforo2", feed: "https://www.coffeeforums.co.uk/forums/-/index.rss" },
   { host: "coffeeforums.com", name: "CoffeeForums.com", niche: "coffee", program: "xenforo2", feed: "https://www.coffeeforums.com/forums/-/index.rss" },
   { host: "coffeesnobs.com.au", name: "CoffeeSnobs", niche: "coffee", program: "vbulletin5", feed: "https://coffeesnobs.com.au/external?type=rss2" },
-  { host: "home-barista.com", name: "Home-Barista", niche: "coffee", program: "phpbb3", feed: "https://www.home-barista.com/forums/feed.php" },
+  { host: "home-barista.com", name: "Home-Barista", niche: "coffee", program: "phpbb3", feed: "https://www.home-barista.com/forums/feed.php?mode=topics" },
   { host: "bikeforums.net", name: "Bike Forums", niche: "cycling", program: "vbulletin4", feed: "https://www.bikeforums.net/external.php?type=RSS2" },
   { host: "cyclechat.net", name: "CycleChat", niche: "cycling", program: "xenforo2", feed: "https://www.cyclechat.net/forums/-/index.rss" },
   { host: "forum.cyclinguk.org", name: "Cycling UK Forum", niche: "cycling", program: "phpbb3", feed: "https://forum.cyclinguk.org/app.php/feed/topics" },
@@ -70,9 +73,6 @@ export const knownForums: readonly KnownForum[] = [
   { host: "phantompilots.com", name: "Phantom Pilots", niche: "drones", program: "xenforo2", feed: "https://phantompilots.com/forums/-/index.rss" },
   { host: "rcgroups.com", name: "RC Groups", niche: "drones", program: "vbulletin4", feed: "https://www.rcgroups.com/external.php?type=RSS2" },
   { host: "yuneecpilots.com", name: "Yuneec Pilots", niche: "drones", program: "xenforo2", feed: "https://yuneecpilots.com/forums/-/index.rss" },
-  { host: "ecommercefuel.com", name: "eCommerceFuel \u2014 Private Ecommerce Owners\u2019 Forum", niche: "ecommerce sellers", program: null, feed: "https://www.ecommercefuel.com/feed/" },
-  { host: "thefastlaneforum.com", name: "The Fastlane Forum \u2014 Ecommerce and Online Business", niche: "ecommerce sellers", program: "xenforo2", feed: "https://www.thefastlaneforum.com/community/forums/-/index.rss" },
-  { host: "ukbusinessforums.co.uk", name: "UK Business Forums \u2014 Ecommerce Discussions", niche: "ecommerce sellers", program: "xenforo2", feed: "https://www.ukbusinessforums.co.uk/forums/-/index.rss" },
   { host: "bassresource.com", name: "BassResource Fishing Forums", niche: "fishing", program: "invision4", feed: "https://www.bassresource.com/bass-fishing-forums/rss/1-bassresource-forum.xml/" },
   { host: "anabolicminds.com", name: "AnabolicMinds", niche: "fitness and bodybuilding", program: "xenforo2", feed: "https://anabolicminds.com/community/forums/-/index.rss" },
   { host: "elitefitness.com", name: "EliteFitness", niche: "fitness and bodybuilding", program: "xenforo2", feed: "https://www.elitefitness.com/forum/forums/-/index.rss" },
@@ -144,11 +144,6 @@ export const knownForums: readonly KnownForum[] = [
   { host: "forums.tomshardware.com", name: "Tom's Hardware Forums", niche: "PC building and hardware", program: "xenforo2", feed: "https://forums.tomshardware.com/forums/-/index.rss" },
   { host: "hardforum.com", name: "HardForum", niche: "PC building and hardware", program: "xenforo2", feed: "https://hardforum.com/forums/-/index.rss" },
   { host: "overclock.net", name: "Overclock.net", niche: "PC building and hardware", program: "xenforo2", feed: "https://www.overclock.net/forums/-/index.rss" },
-  { host: "bogleheads.org", name: "Bogleheads", niche: "personal finance and investing", program: "phpbb3", feed: "https://www.bogleheads.org/forum/feed/topics" },
-  { host: "early-retirement.org", name: "Early Retirement & Financial Independence Community", niche: "personal finance and investing", program: "xenforo2", feed: "https://www.early-retirement.org/forums/-/index.rss" },
-  { host: "elitetrader.com", name: "Elite Trader", niche: "personal finance and investing", program: "xenforo2", feed: "https://www.elitetrader.com/et/forums/-/index.rss" },
-  { host: "financialwisdomforum.org", name: "Financial Wisdom Forum", niche: "personal finance and investing", program: "phpbb3", feed: "https://www.financialwisdomforum.org/forum/feed/topics" },
-  { host: "forum.mrmoneymustache.com", name: "Mr. Money Mustache Forum", niche: "personal finance and investing", program: "smf2", feed: "https://forum.mrmoneymustache.com/.xml/?type=rss" },
   { host: "cameraderie.org", name: "Cameraderie", niche: "photography and cameras", program: "xenforo2", feed: "https://cameraderie.org/forums/-/index.rss" },
   { host: "dpreview.com", name: "DPReview Forums", niche: "photography and cameras", program: "xenforo2", feed: "https://www.dpreview.com/forums/forums/-/index.rss" },
   { host: "pentaxforums.com", name: "Pentax Forums", niche: "photography and cameras", program: "vbulletin4", feed: "https://www.pentaxforums.com/forums/external.php?type=RSS2" },
@@ -162,11 +157,6 @@ export const knownForums: readonly KnownForum[] = [
   { host: "lumberjocks.com", name: "LumberJocks", niche: "power tools", program: "xenforo2", feed: "https://www.lumberjocks.com/forums/-/index.rss" },
   { host: "sawmillcreek.org", name: "Sawmill Creek", niche: "power tools", program: "xenforo2", feed: "https://sawmillcreek.org/forums/-/index.rss" },
   { host: "woodworkingtalk.com", name: "Woodworking Talk", niche: "power tools", program: "xenforo2", feed: "https://www.woodworkingtalk.com/forums/-/index.rss" },
-  { host: "daniweb.com", name: "DaniWeb", niche: "programming", program: null, feed: "https://www.daniweb.com/rss" },
-  { host: "python-forum.io", name: "Python Forum", niche: "programming", program: "mybb", feed: "https://python-forum.io/syndication.php" },
-  { host: "sitepoint.com", name: "SitePoint Community", niche: "programming", program: "discourse", feed: "https://www.sitepoint.com/community/latest.json?order=created" },
-  { host: "vbforums.com", name: "VBForums", niche: "programming", program: "vbulletin4", feed: "https://www.vbforums.com/external.php?type=RSS2" },
-  { host: "propertychat.com.au", name: "PropertyChat", niche: "real estate investing", program: "xenforo1", feed: "https://www.propertychat.com.au/forums/-/index.rss" },
   { host: "forum.slowtwitch.com", name: "Slowtwitch Forum \u2014 triathlon and endurance running", niche: "running", program: "discourse", feed: "https://forum.slowtwitch.com/latest.json?order=created" },
   { host: "runnersforum.co.uk", name: "Runners Forum", niche: "running", program: "xenforo2", feed: "https://www.runnersforum.co.uk/forums/-/index.rss" },
   { host: "airforums.com", name: "AIR Forums", niche: "RVs and camping", program: "xenforo2", feed: "https://www.airforums.com/forums/-/index.rss" },
@@ -175,12 +165,6 @@ export const knownForums: readonly KnownForum[] = [
   { host: "jaycoowners.com", name: "Jayco Owners Forum", niche: "RVs and camping", program: "xenforo2", feed: "https://www.jaycoowners.com/forums/-/index.rss" },
   { host: "keystoneforums.com", name: "Keystone RV Forums", niche: "RVs and camping", program: "xenforo2", feed: "https://www.keystoneforums.com/forums/-/index.rss" },
   { host: "rvforum.net", name: "The RV Forum Community", niche: "RVs and camping", program: "xenforo2", feed: "https://www.rvforum.net/forums/-/index.rss" },
-  { host: "affiliatefix.com", name: "AffiliateFix", niche: "SEO and digital marketing", program: "xenforo2", feed: "https://www.affiliatefix.com/forums/-/index.rss" },
-  { host: "blackhatworld.com", name: "BlackHatWorld", niche: "SEO and digital marketing", program: "xenforo2", feed: "https://www.blackhatworld.com/forums/-/index.rss" },
-  { host: "buildersociety.com", name: "Builder Society", niche: "SEO and digital marketing", program: "xenforo2", feed: "https://www.buildersociety.com/forums/-/index.rss" },
-  { host: "forums.digitalpoint.com", name: "Digital Point", niche: "SEO and digital marketing", program: "xenforo1", feed: "https://forums.digitalpoint.com/forums/-/index.rss" },
-  { host: "bizwarriors.com", name: "BizWarriors", niche: "small business owners", program: "xenforo2", feed: "https://bizwarriors.com/forum/forums/-/index.rss" },
-  { host: "flyingsolo.com.au", name: "Flying Solo Forums", niche: "small business owners", program: "bbpress", feed: "https://www.flyingsolo.com.au/topics/feed/" },
   { host: "avforums.com", name: "AVForums", niche: "smart home", program: "xenforo2", feed: "https://www.avforums.com/forums/-/index.rss" },
   { host: "avsforum.com", name: "AVS Forum", niche: "smart home", program: "xenforo2", feed: "https://www.avsforum.com/forums/-/index.rss" },
   { host: "cocoontech.com", name: "CocoonTech", niche: "smart home", program: "xenforo2", feed: "https://cocoontech.com/forums/-/index.rss" },
@@ -191,18 +175,10 @@ export const knownForums: readonly KnownForum[] = [
   { host: "styleforum.net", name: "Styleforum", niche: "sneakers and streetwear", program: "xenforo2", feed: "https://www.styleforum.net/forums/-/index.rss" },
   { host: "diysolarforum.com", name: "DIY Solar Power Forum", niche: "solar and off-grid power", program: "xenforo2", feed: "https://diysolarforum.com/forums/-/index.rss" },
   { host: "secondlifestorage.com", name: "Second Life Storage & Solar", niche: "solar and off-grid power", program: "xenforo2", feed: "https://secondlifestorage.com/index.php?forums/-/index.rss" },
-  { host: "flyertalk.com", name: "FlyerTalk Forums", niche: "travel", program: "vbulletin4", feed: "https://www.flyertalk.com/forum/external.php?type=RSS2" },
-  { host: "fodors.com", name: "Fodor\u2019s Travel Talk Forums", niche: "travel", program: "vbulletin4", feed: "https://www.fodors.com/community/external.php?type=RSS2" },
-  { host: "travellerspoint.com", name: "Travellerspoint Travel Forums", niche: "travel", program: null, feed: "https://www.travellerspoint.com/feeds/forum/0.xml" },
   { host: "omegaforums.net", name: "Omega Forums", niche: "watches", program: null, feed: "https://omegaforums.net/forums/-/index.rss" },
   { host: "rolexforums.com", name: "Rolex Forums", niche: "watches", program: "vbulletin4", feed: "https://www.rolexforums.com/external.php?type=RSS2" },
   { host: "thewatchforum.co.uk", name: "The Watch Forum", niche: "watches", program: "xenforo2", feed: "https://www.thewatchforum.co.uk/forums/-/index.rss" },
   { host: "watchuseek.com", name: "Watchuseek", niche: "watches", program: "xenforo2", feed: "https://www.watchuseek.com/forums/-/index.rss" },
-  { host: "forumweb.hosting", name: "ForumWeb.Hosting", niche: "web hosting", program: "xenforo2", feed: "https://forumweb.hosting/forums/-/index.rss" },
-  { host: "hostingdiscussion.com", name: "HostingDiscussion", niche: "web hosting", program: "xenforo2", feed: "https://hostingdiscussion.com/forums/-/index.rss" },
-  { host: "lowendspirit.com", name: "LowEndSpirit", niche: "web hosting", program: null, feed: "https://lowendspirit.com/discussions/feed.rss" },
-  { host: "lowendtalk.com", name: "LowEndTalk", niche: "web hosting", program: null, feed: "https://lowendtalk.com/discussions/feed.rss" },
-  { host: "webhostingtalk.com", name: "Web Hosting Talk", niche: "web hosting", program: "vbulletin4", feed: "https://www.webhostingtalk.com/external.php?type=RSS2" },
   { host: "ukworkshop.co.uk", name: "UK Workshop", niche: "woodworking", program: "xenforo2", feed: "https://www.ukworkshop.co.uk/forums/-/index.rss" },
   { host: "woodworkforums.com", name: "Woodwork Forums", niche: "woodworking", program: "vbulletin4", feed: "https://www.woodworkforums.com/external.php?type=RSS2" },
 ];

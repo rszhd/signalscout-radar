@@ -260,9 +260,9 @@ describe("the bridge behind Radar's sorter", () => {
 
   const post = {
     platform: "reddit" as const,
-    channel: "selfhosted",
-    title: "What do you use for notes?",
-    text: "I want a self-hosted notes app that syncs to my phone. What do you all use?",
+    channel: "StandingDesk",
+    title: "Which standing desk do you use?",
+    text: "I want a standing desk under $400 for a small room. Which one do you all use?",
   };
 
   it("sorts a post from a fenced answer, and records the call at no cost", async () => {
@@ -273,9 +273,9 @@ describe("the bridge behind Radar's sorter", () => {
         "```json\n" +
         JSON.stringify({
           isRequest: true,
-          category: "productivity",
-          wants: "A self-hosted notes app that syncs to a phone",
-          tags: ["note-taking"],
+          category: "home-office",
+          wants: "A standing desk under $400 for a small room",
+          tags: ["standing-desks"],
           newTag: "",
           leaving: "",
         }) +
@@ -293,7 +293,7 @@ describe("the bridge behind Radar's sorter", () => {
     expect(calls[0]!.model).toBe("sonnet");
     // The engine puts the schema in the system prompt for this provider.
     expect(calls[0]!.system).toContain("JSON schema");
-    expect(calls[0]!.prompt).toContain("What do you use for notes?");
+    expect(calls[0]!.prompt).toContain("Which standing desk do you use?");
   });
 
   it("stops Claude when the engine gives up on the call", async () => {

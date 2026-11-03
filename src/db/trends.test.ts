@@ -14,8 +14,8 @@ beforeEach(async () => {
   await sql`insert into tags (slug, name, category, kind, shown_at) values
     ('laptops', 'Laptops', 'computers', 'product', ${now}),
     ('monitors', 'Monitors', 'computers', 'product', ${now}),
-    ('alt-hubspot', 'Alternatives to HubSpot', 'sales-crm', 'alt', ${now}),
-    ('alt-hidden', 'Alternatives to Hidden', 'sales-crm', 'alt', null)`;
+    ('alt-bose', 'Alternatives to Bose', 'audio', 'alt', ${now}),
+    ('alt-hidden', 'Alternatives to Hidden', 'audio', 'alt', null)`;
 });
 afterEach(async () => {
   await drop();
@@ -46,16 +46,16 @@ describe("trends", () => {
     await posts(2, { tags: ["laptops"], at: daysAgo(40) });
     await posts(2, { tags: ["laptops"], removed: true });
     await posts(1, { tags: ["monitors"] });
-    await posts(4, { tags: ["alt-hubspot"], category: "sales-crm" });
-    await posts(9, { tags: ["alt-hidden"], category: "sales-crm" });
+    await posts(4, { tags: ["alt-bose"], category: "audio" });
+    await posts(9, { tags: ["alt-hidden"], category: "audio" });
 
     expect(await topTags(sql, 15, shownSpan(now))).toEqual([
       { slug: "laptops", name: "Laptops", count: 3 },
       { slug: "monitors", name: "Monitors", count: 1 },
     ]);
-    expect(await leavingProducts(sql, 12, shownSpan(now))).toEqual([{ slug: "alt-hubspot", name: "Alternatives to HubSpot", count: 4 }]);
+    expect(await leavingProducts(sql, 12, shownSpan(now))).toEqual([{ slug: "alt-bose", name: "Alternatives to Bose", count: 4 }]);
     expect(await topCategories(sql, shownSpan(now))).toEqual([
-      { slug: "sales-crm", count: 13 },
+      { slug: "audio", count: 13 },
       { slug: "computers", count: 4 },
     ]);
   });
@@ -74,7 +74,7 @@ describe("trends", () => {
     await posts(5, { tags: ["monitors"], at: daysAgo(2) });
     await posts(1, { tags: ["monitors"], at: daysAgo(9) });
     // Four this week from none is under the floor; falling is left out too.
-    await posts(4, { tags: ["alt-hubspot"], category: "sales-crm", at: daysAgo(2) });
+    await posts(4, { tags: ["alt-bose"], category: "audio", at: daysAgo(2) });
 
     expect(await risingTags(sql, 10, now)).toEqual([
       { slug: "laptops", name: "Laptops", week: 12, previousWeek: 6 },

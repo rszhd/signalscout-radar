@@ -15,7 +15,7 @@ import {
 } from "@signalscout/engine";
 import { z } from "zod";
 import type { TagRow } from "../db/tags.ts";
-import { categorySlugs, offeredCategories, servicesEnabled } from "./categories.ts";
+import { categorySlugs, offeredCategories, servicesEnabled, softwareEnabled } from "./categories.ts";
 import { altSlug, tagSlug } from "./tags.ts";
 import { placeOf } from "../lib/place.ts";
 
@@ -63,10 +63,21 @@ export function buildSystemPrompt(tags: readonly TagRow[] = []): string {
       ? "which product to use or buy, or wants to hire someone for business work."
       : "which product to use or buy.",
     "",
-    "A PRODUCT is something a person can pick: software, an app, a website to",
-    "use, a device, a gadget, gear, clothing, a car. Asking for an alternative",
+    ...(softwareEnabled
+      ? [
+          "A PRODUCT is something a person can pick: software, an app, a website to",
+          "use, a device, a gadget, gear, clothing, a car. Asking for an alternative",
+        ]
+      : [
+          "A PRODUCT is a physical thing a person can buy: a device, a gadget, gear,",
+          "a tool, a part or a supply, clothing, a car. Software, an app, a website",
+          "or an online service is NOT a product here. Asking for an alternative",
+        ]),
     "to a product they use counts. Asking whether a product is worth buying",
-    "counts.",
+    "counts. So does comparing products before buying one ('Powermatic vs",
+    "Jet jointer', 'which grinder should I get'), asking where to buy or find",
+    "a part, a supply or a consumable (o-rings, sandpaper, powder, a spare",
+    "part), and a wanted-to-buy post ([WTB]).",
     "",
     ...(servicesEnabled
       ? [
@@ -83,7 +94,8 @@ export function buildSystemPrompt(tags: readonly TagRow[] = []): string {
       : ["- wants to hire a person, a freelancer or an agency for work"]),
     "- is a job ad for a full-time or permanent role (salary, benefits, a team",
     "  to join): that is recruiting, not buying",
-    "- offers a service or a product, or promotes one ([For Hire], portfolios)",
+    "- offers a service or a product, or promotes one ([For Hire], portfolios,",
+    "  [FS] or For Sale posts)",
     "- asks for a local consumer service: a plumber, a cleaner, a doctor, a",
     "  tutor, a restaurant, a shop to visit",
     "- asks for books, films, music, shows or games to watch or read",

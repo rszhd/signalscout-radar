@@ -60,11 +60,20 @@ export type CategoryKind = (typeof categories)[number]["kind"];
  * service categories, the worker does not read the hiring subreddits, and the
  * page hides any service rows already stored — they stay in the table.
  */
-export const servicesEnabled = true;
+export const servicesEnabled = false;
 
-/** The categories Radar uses now: every one, or every one but services. */
+/**
+ * Whether Radar sorts, fetches and shows software, as `servicesEnabled` does
+ * for services. Off at the owner's word on 2026-11-03 (US-511): "remove
+ * software and hiring/service for now and focus on physical goods for niche
+ * small business".
+ */
+export const softwareEnabled = false;
+
+/** The categories Radar uses now: goods always, software and services by their switches. */
 export const offeredCategories = categories.filter(
-  (category) => servicesEnabled || category.kind !== "services",
+  (category) =>
+    (servicesEnabled || category.kind !== "services") && (softwareEnabled || category.kind !== "software"),
 );
 
 export const categorySlugs = offeredCategories.map((category) => category.slug) as [
