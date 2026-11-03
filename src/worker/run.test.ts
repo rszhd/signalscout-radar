@@ -70,7 +70,7 @@ function plan(source: SocialSource): SearchPlan {
   return {
     platform: "x",
     source,
-    apiKey: "key",
+    credentials: { apiKey: "key" },
     phrases: ["can anyone recommend"],
     maxPages: 50,
     limit: 20,
@@ -432,5 +432,77 @@ describe("old requests", () => {
     expect(await ids(latestRequests(sql, 50, noon))).toEqual(["https://r/2"]);
     expect(await ids(requestsIn(sql, "computers", 100, noon))).toEqual(["https://r/2"]);
     expect(await ids(requestsTagged(sql, "laptops", 100, noon))).toEqual(["https://r/2"]);
+  });
+});
+
+describe("forums (US-511)", () => {
+  function forumPost(id: string, text: string, partial: boolean, title = "Which DAC should I buy?"): CandidatePost {
+    return {
+      externalId: `forum.example:${id}`,
+      url: `https://forum.example/threads/${id}`,
+      channel: "www.forum.example",
+      title,
+      text,
+      postedAt: new Date(noon.getTime() - 60_000),
+      ...(partial ? { partial: { since: new Date(noon.getTime() - 3_600_000) } } : {}),
+    };
+  }
+
+  function forumPlan(source: SocialSource, extra: number[]): SearchPlan {
+    return {
+      platform: "forum",
+      source,
+      credentials: { apiKey: "key", unlockerZone: "zone" },
+      phrases: [],
+      feeds: () => [{ name: "Forum Example", url: "https://forum.example/forums/-/index.rss" }],
+      maxPages: 1,
+      limit: 50,
+      worstSearchMicros: 3000,
+      unitMicros: 1500,
+      extraMicros: () => extra.shift() ?? 0,
+    };
+  }
+
+  it("counts the browser's cost, and keeps a cut post only from its own page", async () => {
+    const asked: string[] = [];
+    const source: SocialSource = {
+      async search(request) {
+        expect(request.query.queries).toEqual(["https://forum.example/forums/-/index.rss"]);
+        return {
+          posts: [
+            forumPost("1", "Which DAC should I buy? Cut by the fe", true),
+            forumPost("2", "An old thread with a new reply. Which DAC should I buy?", true),
+            forumPost("3", "Nothing asked here.", false, "My new DAC arrived"),
+          ],
+          unitsConsumed: 0,
+          next: { status: "done" },
+        };
+      },
+      async *completePosts(request) {
+        const url = request.posts[0]?.url as string;
+        asked.push(url);
+        if (url.endsWith("/2")) {
+          yield { status: "old", reason: "started 2024-01-01", unitsConsumed: 0 };
+          return;
+        }
+        yield {
+          status: "complete",
+          post: { ...forumPost("1", "Which DAC should I buy? The whole first post.", false), externalId: "page-id" },
+          unitsConsumed: 0,
+        };
+      },
+    };
+    // 1,400 for the feed's browser, then 1,300 and 1,200 for the two pages.
+    const result = await run(options({ plans: [forumPlan(source, [1400, 1300, 1200])] }));
+
+    expect(result.providerMicros).toBe(3900);
+    expect(result.filtered).toBe(2);
+    expect(result.kept).toBe(1);
+    expect(asked).toEqual(["https://forum.example/threads/1", "https://forum.example/threads/2"]);
+    const rows = await sql<{ external_id: string; excerpt: string; channel: string }[]>`
+      select external_id, excerpt, channel from requests`;
+    expect(rows).toEqual([
+      { external_id: "forum.example:1", excerpt: "Which DAC should I buy? The whole first post.", channel: "www.forum.example" },
+    ]);
   });
 });

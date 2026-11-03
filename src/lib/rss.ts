@@ -4,6 +4,7 @@
  */
 import type { RequestRow } from "@/db/queries.ts";
 import { buyerfinderUrl, siteUrl } from "./links.ts";
+import { placeOf } from "./place.ts";
 
 function escape(text: string): string {
   return text
@@ -14,7 +15,7 @@ function escape(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
-const platformName = { reddit: "Reddit", x: "X" } as const;
+const platformName = { reddit: "Reddit", x: "X", forum: "Forum" } as const;
 
 export function renderFeed(options: {
   title: string;
@@ -28,7 +29,7 @@ export function renderFeed(options: {
 }): string {
   const pitch = buyerfinderUrl("rss", options.campaign);
   const items = options.rows.map((row) => {
-    const where = row.channel ? `${platformName[row.platform]} · r/${row.channel}` : platformName[row.platform];
+    const where = row.channel ? `${platformName[row.platform]} · ${placeOf(row.platform, row.channel)}` : platformName[row.platform];
     const body = [
       `<p><b>Wants:</b> ${escape(row.wants)}</p>`,
       `<p>${escape(row.excerpt)}</p>`,

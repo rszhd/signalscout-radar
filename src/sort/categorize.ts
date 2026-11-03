@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { TagRow } from "../db/tags.ts";
 import { categorySlugs, offeredCategories, servicesEnabled } from "./categories.ts";
 import { altSlug, tagSlug } from "./tags.ts";
+import { placeOf } from "../lib/place.ts";
 
 export const verdictSchema = z.object({
   isRequest: z
@@ -40,7 +41,7 @@ export const verdictSchema = z.object({
 export type Verdict = z.infer<typeof verdictSchema>;
 
 export interface PostToSort {
-  readonly platform: "reddit" | "x";
+  readonly platform: "reddit" | "x" | "forum";
   readonly channel?: string;
   readonly title?: string;
   readonly text: string;
@@ -123,8 +124,8 @@ export function buildSystemPrompt(tags: readonly TagRow[] = []): string {
 
 export function buildUserPrompt(post: PostToSort): string {
   return [
-    `PLATFORM: ${post.platform === "x" ? "X" : "Reddit"}`,
-    ...(post.channel ? [`SUBREDDIT: r/${post.channel}`] : []),
+    `PLATFORM: ${{ x: "X", reddit: "Reddit", forum: "Forum" }[post.platform]}`,
+    ...(post.channel ? [`${post.platform === "forum" ? "FORUM" : "SUBREDDIT"}: ${placeOf(post.platform, post.channel)}`] : []),
     ...(post.title ? [`TITLE: ${post.title}`] : []),
     "POST:",
     post.text.slice(0, 2000),

@@ -34,7 +34,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 
 <Layout
   title="Trends: what people ask to buy | BuyerFinder Radar"
-  description={`What people on Reddit and X asked to buy ${period}: the products they want to leave, the tags rising fastest, and the most requested categories.`}
+  description={`What people on Reddit and forums asked to buy ${period}: the products they want to leave, the tags rising fastest, and the most requested categories.`}
 >
   <section class="border-b bg-card">
     <div class="mx-auto max-w-[1240px] px-4 py-10 sm:px-8">
@@ -46,7 +46,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
       <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">What people ask to buy</h1>
       <p class="mt-3 max-w-2xl text-[0.9375rem] text-secondary-foreground">
         {posts(total)} asking for a product or a service {period}. Every number counts the posts Radar read, from the
-        subreddits and X searches on the <a href="/about" class="font-semibold text-primary hover:underline">How it works</a> page,
+        subreddits and forums on the <a href="/about" class="font-semibold text-primary hover:underline">How it works</a> page,
         so compare within a chart, not with the whole market.
       </p>
     </div>

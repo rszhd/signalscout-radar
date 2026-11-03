@@ -5,7 +5,8 @@ import { type Card, type Platform, platforms } from "@/lib/present";
 
 type Filter = "all" | Platform;
 
-const order: Filter[] = ["all", "reddit", "x"];
+// X is read no more and its posts are hidden (US-511).
+const order: Filter[] = ["all", "reddit", "forum"];
 
 export function Feed({ requests, showCategory = true }: { requests: Card[]; showCategory?: boolean }) {
   const [filter, setFilter] = useState<Filter>("all");

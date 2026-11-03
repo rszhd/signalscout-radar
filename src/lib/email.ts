@@ -8,6 +8,7 @@
 // Not present.ts: it imports through the "@/" alias, which the worker's
 // plain Node cannot resolve.
 import { buyerfinderUrl } from "./links.ts";
+import { placeOf } from "./place.ts";
 
 export interface Email {
   subject: string;
@@ -77,7 +78,7 @@ export function confirmationEmail(input: { tagNames: string[]; adding: boolean; 
 }
 
 export interface DigestPost {
-  platform: "reddit" | "x";
+  platform: "reddit" | "x" | "forum";
   channel: string | null;
   url: string;
   wants: string;
@@ -88,8 +89,7 @@ export interface DigestPost {
 }
 
 function where(post: Pick<DigestPost, "platform" | "channel">): string {
-  if (post.platform === "reddit" && post.channel) return `r/${post.channel.replace(/^r\//, "")}`;
-  return post.platform === "x" ? "X" : "Reddit";
+  return placeOf(post.platform, post.channel);
 }
 
 /** As the page says it: "40 min ago", "3 h ago", "2 d ago". */

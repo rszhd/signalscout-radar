@@ -8,9 +8,12 @@
 import {
   aiConfigFromEnvironment,
   aiEnvSchema,
+  type BrowserUsage,
   builtInSources,
+  createBrightDataForum,
   createSourceRegistry,
   createSourceRuntime,
+  hasBrowserCredentials,
 } from "@signalscout/engine";
 import { z } from "zod";
 import { connect } from "../db/client.ts";
@@ -19,6 +22,7 @@ import { createMailer } from "../lib/mail.ts";
 import { servicesEnabled } from "../sort/categories.ts";
 import { createSorter } from "../sort/categorize.ts";
 import { sendDigests } from "./digest.ts";
+import { forumsForTurn } from "./known-forums.ts";
 import { run, type SearchPlan } from "./run.ts";
 
 // The cheap model rejects a JSON schema and the engine puts it in the prompt
@@ -28,8 +32,21 @@ import { run, type SearchPlan } from "./run.ts";
 const env = z
   .object({
     DATABASE_URL: z.string().url(),
-    SOCIALCRAWL_API_KEY: z.string().min(1),
     SCRAPECREATORS_API_KEY: z.string().min(1),
+    // Forums (US-511): Browser Use's cloud browser on our own proxy first,
+    // Bright Data's Web Unlocker after a browser failure. Without all of them
+    // Radar reads no forum.
+    BRIGHTDATA_API_KEY: z.string().trim().default(""),
+    BRIGHTDATA_UNLOCKER_ZONE: z.string().trim().default(""),
+    BROWSER_USE_API_KEY: z.string().trim().default(""),
+    PROXY_HOST: z.string().trim().default(""),
+    PROXY_PORT: z.string().trim().default(""),
+    PROXY_USERNAME: z.string().trim().default(""),
+    PROXY_PASSWORD: z.string().trim().default(""),
+    // "port" for a proxy that keeps an address per port (DataImpulse).
+    PROXY_SESSION: z.string().trim().default("port"),
+    // What the proxy charges a GB, in dollars: DataImpulse, $5 for 5 GB.
+    RADAR_PROXY_PRICE_PER_GB: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().default(1)),
     RADAR_DAILY_CAP_USD: z.coerce.number().positive().max(20).default(2),
     PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().url().default("https://radar.buyerfinder.run")),
   })
@@ -39,14 +56,16 @@ const env = z
 // before this process starts.
 const sql = connect(env.DATABASE_URL);
 
-const registry = createSourceRegistry({ definitions: builtInSources, runtime: createSourceRuntime() });
+const runtime = createSourceRuntime();
+const registry = createSourceRegistry({ definitions: builtInSources, runtime });
 const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
 
 /**
- * Software first, because the first audience is people who build software:
- * software subreddits and X together get 60% of each run, the goods
- * subreddits 30%, the Reddit keyword search 10%. With services on (US-429),
- * the subreddits where people hire get 10% of that 30%. What a plan leaves unspent
+ * Forums take 75% of each run (US-511, X was read until then). Of the rest,
+ * software subreddits, goods subreddits and the Reddit keyword search get 10%
+ * each; with services on (US-429), the subreddits where people hire get half
+ * of the goods share. The subreddits are read every third hour, so in the
+ * other hours their share passes on. What a plan leaves unspent
  * passes to the plans after it. Before shares, the money ran out in list order
  * and one production run kept 292 goods requests and 1 software request.
  *
@@ -59,7 +78,7 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
  * page billed at that price. `pnpm phrases` ranks every input by requests per
  * dollar, so a weak one can be dropped from this list.
  */
-const redditKey = env.SCRAPECREATORS_API_KEY;
+const redditKey = { apiKey: env.SCRAPECREATORS_API_KEY };
 const reddit = registry.get("reddit", "scrapecreators");
 const redditPrices = { unitMicros: 1880, worstSearchMicros: 2 * 1880 };
 const subreddits = {
@@ -76,6 +95,67 @@ const subreddits = {
 };
 
 /**
+ * Forums (US-511), first and with three quarters of each run: the owner chose
+ * 12 forums an hour at a $0.75 day, Reddit getting what they leave. Each run
+ * reads 12 niches of the 52, each at its next forum (`forumsForTurn`). One
+ * feed read is one call through the browser: Bright Data bills nothing for
+ * it, so its cost is the browser's, estimated as BuyerFinder does
+ * (`estimateBrowserMicros`): browser time at $0.02 an hour, a minute at
+ * least, and 1 MB a page through the proxy at Browser Use's $0.20 a GB plus
+ * the proxy's own price. A cut post the model keeps costs one more call.
+ */
+const browserCredentials = {
+  apiKey: env.BROWSER_USE_API_KEY,
+  proxyHost: env.PROXY_HOST,
+  proxyPort: env.PROXY_PORT,
+  proxyUsername: env.PROXY_USERNAME,
+  proxyPassword: env.PROXY_PASSWORD,
+  proxySession: env.PROXY_SESSION,
+};
+const forumsReady =
+  hasBrowserCredentials(browserCredentials) && env.BRIGHTDATA_API_KEY !== "" && env.BRIGHTDATA_UNLOCKER_ZONE !== "";
+if (!forumsReady) console.log("forum keys are not set: no forums");
+
+let browserMicros = 0;
+function estimateBrowserMicros(usage: BrowserUsage, proxyPricePerGb: number): number {
+  const minutes = Math.max(1, Math.ceil((usage.stoppedAt.getTime() - usage.startedAt.getTime()) / 60_000));
+  const traffic = (usage.pages / 1024) * (0.2 + proxyPricePerGb) * 1_000_000;
+  return Math.round((minutes * 20_000) / 60 + traffic);
+}
+
+const forumPlan: SearchPlan | undefined = forumsReady
+  ? {
+      platform: "forum",
+      source: createBrightDataForum({
+        browser: { credentials: browserCredentials },
+        // The owner's choice: the browser first, Bright Data after it.
+        fetcherFor: () => "browser",
+        onBrowser: (usage) => {
+          browserMicros += estimateBrowserMicros(usage, env.RADAR_PROXY_PRICE_PER_GB);
+        },
+      }).create(runtime),
+      credentials: { apiKey: env.BRIGHTDATA_API_KEY, unlockerZone: env.BRIGHTDATA_UNLOCKER_ZONE },
+      share: 0.75,
+      phrases: [],
+      feeds: (turn) => forumsForTurn(turn, 12).map((forum) => ({ name: forum.name, url: forum.feed })),
+      // The first read of a forum reaches back two days; `seen_posts` removes
+      // the overlap after it. A thread older than that is no new request.
+      lookBackMs: 48 * 60 * 60 * 1000,
+      maxPages: 1,
+      limit: 50,
+      // The worst call: a browser minute and a page, then Bright Data's page
+      // when the browser fails.
+      worstSearchMicros: 3000,
+      unitMicros: 1500,
+      extraMicros: () => {
+        const spent = browserMicros;
+        browserMicros = 0;
+        return spent;
+      },
+    }
+  : undefined;
+
+/**
  * Where people hire a business service (US-429). About three posts in four
  * offer work instead, and those are refused before the model, for free. Off
  * while `servicesEnabled` is false; its 10% then goes to the goods subreddits.
@@ -83,19 +163,20 @@ const subreddits = {
 const servicesPlan: SearchPlan = {
   platform: "reddit",
   source: reddit,
-  apiKey: redditKey,
-  share: 0.1,
+  credentials: redditKey,
+  share: 0.05,
   ...subreddits,
   channels: ["forhire", "hiring", "slavelabour", "HireaWriter", "DesignJobs"],
   ...redditPrices,
 };
 
 const plans: SearchPlan[] = [
+  ...(forumPlan ? [forumPlan] : []),
   {
     platform: "reddit",
     source: reddit,
-    apiKey: redditKey,
-    share: 0.2,
+    credentials: redditKey,
+    share: 0.1,
     ...subreddits,
     channels: [
       "sysadmin",
@@ -110,41 +191,12 @@ const plans: SearchPlan[] = [
     ],
     ...redditPrices,
   },
-  {
-    platform: "x",
-    // SocialCrawl since 2026-10-24: the SocialData account has no credit left.
-    source: registry.get("x", "socialcrawl"),
-    apiKey: env.SOCIALCRAWL_API_KEY,
-    share: 0.4,
-    // The four measured in US-413, and six aimed at software, which is the
-    // first audience; `pnpm phrases` says after a day which ones pay. Each run
-    // starts at a different phrase, so all of them get their turn.
-    phrases: [
-      "looking for recommendations",
-      "what do you use",
-      "any suggestions for",
-      "can anyone recommend",
-      "is there an app",
-      "is there a tool",
-      "what software do you",
-      "what app do you",
-      "any alternatives to",
-      "recommend a tool",
-    ],
-    // The connector stops at two pages a phrase whatever is asked.
-    maxPages: 2,
-    limit: 20,
-    // One credit a request, at the engine's price for the smallest pack.
-    worstSearchMicros: 8118,
-    unitMicros: 8118,
-  },
-
   ...(servicesEnabled ? [servicesPlan] : []),
   {
     platform: "reddit",
     source: reddit,
-    apiKey: redditKey,
-    share: servicesEnabled ? 0.2 : 0.3,
+    credentials: redditKey,
+    share: servicesEnabled ? 0.05 : 0.1,
     ...subreddits,
     channels: [
       "SuggestALaptop",
@@ -171,7 +223,7 @@ const plans: SearchPlan[] = [
   {
     platform: "reddit",
     source: reddit,
-    apiKey: redditKey,
+    credentials: redditKey,
     share: 0.1,
     phrases: [
       "can anyone recommend",

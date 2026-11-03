@@ -13,6 +13,7 @@ import { tagChannels } from "@/db/trends.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { mailReady } from "@/lib/site.ts";
+import { placeOf } from "@/lib/place";
 import { toCard } from "@/lib/present";
 import { categoryBySlug } from "@/sort/categories.ts";
 
@@ -32,9 +33,9 @@ const siblings = all.filter((other) => other.category === tag.category);
 const own = siblings.find((other) => other.slug === tag.slug);
 const lower = tag.name.toLowerCase();
 const heading = tag.kind === "alt" ? `People looking for ${lower}` : `People asking for ${lower}`;
-// US-463: where to answer. X is one place; its searches are not channels.
+// US-463: where to answer: each subreddit and forum (US-511).
 const places = channels.map((row) => {
-  const place = row.channel ? `r/${row.channel}` : "X";
+  const place = placeOf(row.platform, row.channel);
   return { label: place, value: row.count, title: `${place}: ${row.count} ${row.count === 1 ? "post" : "posts"} in the last ${shownDays} days` };
 });
 
@@ -43,7 +44,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 
 <Layout
   title={`${heading} | BuyerFinder Radar`}
-  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} to use or buy. From Reddit and X, refreshed every hour.${mailReady() ? " Get them by email every morning." : ""}`}
+  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} to use or buy. From Reddit and forums, refreshed every hour.${mailReady() ? " Get them by email every morning." : ""}`}
   campaign={tag.category}
 >
   <section class="border-b bg-card">

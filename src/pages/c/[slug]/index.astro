@@ -30,7 +30,7 @@ const cards = rows.map((row) => toCard(row, now));
 const tiles = toTiles(counts);
 const own = tiles.find((tile) => tile.slug === category.slug);
 const related = tiles.filter((tile) => tile.kind === category.kind && tile.slug !== category.slug).slice(0, 6);
-const byPlatform = (["reddit", "x"] as const)
+const byPlatform = (["reddit", "forum"] as const)
   .map((key) => ({ key, count: rows.filter((row) => row.platform === key).length }))
   .sort((a, b) => b.count - a.count);
 const busiest = byPlatform[0]?.count ? platforms[byPlatform[0].key].name : "—";
@@ -43,7 +43,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 
 <Layout
   title={`People asking for ${lower} recommendations | BuyerFinder Radar`}
-  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} product to use or buy. From Reddit and X, refreshed every hour.`}
+  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} product to use or buy. From Reddit and forums, refreshed every hour.`}
   image={`/og/c/${category.slug}.png`}
   campaign={category.slug}
 >

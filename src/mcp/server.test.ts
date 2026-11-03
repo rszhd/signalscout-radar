@@ -72,7 +72,7 @@ describe("MCP", () => {
 
     expect((await call("search_requests", { query: "standing desk" })).data).toHaveLength(2);
     expect((await call("search_requests", { tag: "alt-hubspot" })).data[0].url).toBe("https://x.com/i/status/b");
-    expect((await call("search_requests", { platform: "x", category: "home-office" })).data).toEqual([]);
+    expect((await call("search_requests", { platform: "forum", category: "home-office" })).data).toEqual([]);
     // "%" is a character to find, not "anything".
     expect((await call("search_requests", { query: "%%" })).data).toEqual([]);
     expect((await call("search_requests", { query: "100%" })).data).toHaveLength(1);

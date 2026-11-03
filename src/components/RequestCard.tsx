@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { placeOf } from "@/lib/place";
 import { type Card as CardData, platforms } from "@/lib/present";
 
 export function RequestCard({
@@ -18,7 +19,9 @@ export function RequestCard({
         <div className="flex items-center gap-2 text-[0.8125rem] text-muted-foreground">
           <img src={platform.icon} alt="" className="size-4 rounded-[3px]" />
           <span className="font-semibold text-secondary-foreground">{platform.name}</span>
-          {request.channel && <span className="min-w-0 truncate">r/{request.channel}</span>}
+          {request.channel && (
+            <span className="min-w-0 truncate">{placeOf(request.platform, request.channel)}</span>
+          )}
           <span aria-hidden>·</span>
           <span className="shrink-0">{request.age}</span>
         </div>

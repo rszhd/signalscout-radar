@@ -10,7 +10,7 @@
  * `runs`, so a restart cannot reset it, and the run's row is updated after
  * every call, so a crash cannot hide what it spent.
  */
-import type { CandidatePost, ModelCall, SocialSource } from "@signalscout/engine";
+import type { CandidatePost, ModelCall, SocialSource, SourceCredentials } from "@signalscout/engine";
 import type { Sql } from "../db/client.ts";
 import { alreadySeen, forgetOld, markSeen, saveRequest, spentToday } from "../db/queries.ts";
 import { forgetIdleProposals, proposeTags, showBusyProposals } from "../db/tags.ts";
@@ -18,10 +18,11 @@ import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
 import { offersWork, readsLikeRequest } from "../sort/phrases.ts";
 
 export interface SearchPlan {
-  readonly platform: "reddit" | "x";
-  // Only the search: Radar never reads replies and never checks a key.
-  readonly source: Pick<SocialSource, "search">;
-  readonly apiKey: string;
+  readonly platform: "reddit" | "x" | "forum";
+  // Only the search, and for a forum the thread page of a cut post: Radar
+  // never reads replies and never checks a key.
+  readonly source: Pick<SocialSource, "search" | "completePosts">;
+  readonly credentials: SourceCredentials;
   /** Search phrases. A post they find must pass the free text filter first. */
   readonly phrases: readonly string[];
   /**
@@ -31,6 +32,18 @@ export interface SearchPlan {
    * in 193 posts, of which the filter would have kept 35.
    */
   readonly channels?: readonly string[];
+  /**
+   * Forums, each read through its newest-threads feed (US-511). A feed is
+   * one call, and its posts pass the text filter as a phrase's do: most
+   * threads on a forum are not requests.
+   */
+  readonly feeds?: (turn: number) => readonly { readonly name: string; readonly url: string }[];
+  /**
+   * What the plan spent outside the units its source reports, since the last
+   * ask: a forum's browser, which the engine counts no unit for (US-511).
+   * Read after every call.
+   */
+  readonly extraMicros?: () => number;
   /**
    * This plan's part of each run's money, from 0 to 1. What a plan leaves
    * unspent passes to the plans after it. Without shares the money simply runs
@@ -186,12 +199,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
         continue;
       }
       const since = new Date(start.getTime() - (plan.lookBackMs ?? options.lookBackMs));
+      const turn = plan.everyHours ? Math.floor(hour / plan.everyHours) : hour;
       const inputs = rotate(
         [
           ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
           ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
+          ...(plan.feeds?.(turn) ?? []).map((feed) => ({ text: feed.name, queries: [feed.url], channels: [], filter: true })),
         ],
-        plan.everyHours ? Math.floor(hour / plan.everyHours) : hour,
+        turn,
       );
       inputs: for (const input of inputs) {
         const { text } = input;
@@ -206,7 +221,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           try {
             result = await plan.source.search({
               query: { queries: input.queries, channels: input.channels, since },
-              credentials: { apiKey: plan.apiKey },
+              credentials: plan.credentials,
               cursor,
               limit: plan.limit,
             });
@@ -215,11 +230,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
             // reason to stop the others. A failed call reports no units; if
             // the provider billed it anyway, the invoice says so, not us.
             add("errors", 1);
+            add("providerMicros", plan.extraMicros?.() ?? 0);
             await save();
             log(`${plan.platform} "${text}": ${(error as Error).message}`);
             break;
           }
-          add("providerMicros", result.unitsConsumed * plan.unitMicros);
+          add("providerMicros", result.unitsConsumed * plan.unitMicros + (plan.extraMicros?.() ?? 0));
           await save();
 
           const fresh = await freshPosts(sql, plan.platform, result.posts);
@@ -253,17 +269,27 @@ export async function run(options: RunOptions): Promise<RunResult> {
               add("modelMicros", Number.isNaN(cost) ? worstSortMicros : cost);
               add("sorted", 1);
               if (sorted.status === "sorted" && sorted.verdict.isRequest && sorted.verdict.category !== "other") {
+                // A forum feed may cut the first post and date the thread by
+                // its newest reply. Only a post worth keeping pays for its page.
+                let whole: CandidatePost | null = post;
+                if (post.partial) {
+                  if (!fits(plan.worstSearchMicros)) continue;
+                  const read = await completed(plan, post);
+                  add("providerMicros", read.units * plan.unitMicros + (plan.extraMicros?.() ?? 0));
+                  whole = read.post;
+                }
+                if (!whole) continue;
                 await proposeTags(sql, sorted.tagging.proposals);
                 await saveRequest(sql, {
                   platform: plan.platform,
-                  externalId: post.externalId,
-                  url: post.url,
-                  channel: post.channel ?? null,
-                  title: post.title ? cleanText(post.title) : null,
-                  excerpt: excerptOf(post.text),
+                  externalId: whole.externalId,
+                  url: whole.url,
+                  channel: whole.channel ?? null,
+                  title: whole.title ? cleanText(whole.title) : null,
+                  excerpt: excerptOf(whole.text),
                   wants: sorted.verdict.wants,
                   category: sorted.verdict.category,
-                  postedAt: post.postedAt,
+                  postedAt: whole.postedAt,
                   phrase: text,
                   tags: sorted.tagging.tags,
                 });
@@ -311,6 +337,32 @@ export async function run(options: RunOptions): Promise<RunResult> {
       `${totals.fetched} fetched, ${totals.filtered} filtered, ${totals.sorted} sorted, ${totals.kept} kept, ${totals.errors} failed searches`,
   );
   return { outcome, ...totals };
+}
+
+/**
+ * A partial post's thread page, read whole. Null when the thread started
+ * before the post's window, or its page could not be read: a thread the feed
+ * showed for a new reply is not a new request.
+ */
+async function completed(
+  plan: SearchPlan,
+  post: CandidatePost,
+): Promise<{ post: CandidatePost | null; units: number }> {
+  if (!plan.source.completePosts) return { post, units: 0 };
+  try {
+    for await (const result of plan.source.completePosts({
+      posts: [{ url: post.url, ...(post.partial?.since ? { since: post.partial.since } : {}) }],
+      credentials: plan.credentials,
+    })) {
+      const units = result.unitsConsumed;
+      return result.status === "complete"
+        ? { post: { ...result.post, externalId: post.externalId }, units }
+        : { post: null, units };
+    }
+  } catch {
+    // A page that could not be read: the post is dropped, never kept half.
+  }
+  return { post: null, units: 0 };
 }
 
 /** New posts only, each once. The caller marks them seen once it has handled them. */

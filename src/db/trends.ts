@@ -47,7 +47,7 @@ export interface Rising {
 }
 
 export interface Channel {
-  platform: "reddit" | "x";
+  platform: "reddit" | "x" | "forum";
   /** The subreddit; null for X, which has none. */
   channel: string | null;
   count: number;
@@ -113,7 +113,7 @@ export async function risingTags(sql: Sql, limit = 10, now = new Date()): Promis
 
 /** Where one tag's posts were found: each subreddit, and X as one place. */
 export async function tagChannels(sql: Sql, slug: string, limit = 6, now = new Date()): Promise<Channel[]> {
-  const rows = await sql<{ platform: "reddit" | "x"; channel: string | null; count: string }[]>`
+  const rows = await sql<{ platform: "reddit" | "x" | "forum"; channel: string | null; count: string }[]>`
     select platform, case when platform = 'x' then null else channel end as channel, count(*)::text as count
     from requests
     where removed_at is null and ${slug} = any (tags) and category in ${sql(shown())}
