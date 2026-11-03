@@ -81,7 +81,6 @@ export const listedTags: Partial<Record<CategorySlug, Record<string, string>>> =
     "ui-design": "UI design tools",
     "3d-modelling": "3D modelling",
     animation: "Animation software",
-    "art-supplies": "Art supplies and drawing tablets",
     portfolios: "Portfolio sites",
   },
   "video-audio": {
@@ -201,6 +200,7 @@ export const listedTags: Partial<Record<CategorySlug, Record<string, string>>> =
     soldering: "Soldering",
     "electronic-parts": "Microcontrollers and electronic parts",
     "cables-networking": "Cables and networking",
+    radios: "Radios and antennas",
     "tool-storage": "Tool storage",
   },
   "home-kitchen": {
@@ -271,6 +271,10 @@ export const listedTags: Partial<Record<CategorySlug, Record<string, string>>> =
     "car-accessories": "Car accessories and parts",
     "dash-cams": "Dash cams",
     "car-buying-tools": "Car history and buying tools",
+    boats: "Boats and outboards",
+    "marine-electronics": "Marine electronics",
+    rvs: "RVs and trailers",
+    "rv-parts": "RV parts and accessories",
   },
   "sports-outdoors": {
     "running-shoes": "Running and trail shoes",
@@ -285,6 +289,7 @@ export const listedTags: Partial<Record<CategorySlug, Record<string, string>>> =
     "cycling-gear": "Cycling gear and helmets",
     "sports-shoes": "Court and gym shoes",
     "skate-scooters": "Skateboards and scooters",
+    golf: "Golf clubs and balls",
   },
   gaming: {
     consoles: "Consoles and handhelds",
@@ -314,6 +319,56 @@ export const listedTags: Partial<Record<CategorySlug, Record<string, string>>> =
     reptiles: "Reptile and terrarium supplies",
     "small-pets": "Small pet supplies",
     "pet-health": "Pet health and flea care",
+  },
+  "music-gear": {
+    guitars: "Guitars and basses",
+    "guitar-amps": "Amps",
+    "guitar-pedals": "Pedals and effects",
+    "keyboards-pianos": "Keyboards and pianos",
+    drums: "Drums and percussion",
+    "dj-gear": "DJ gear and controllers",
+    "music-accessories": "Strings, cases and accessories",
+  },
+  "fishing-hunting": {
+    "rods-reels": "Rods and reels",
+    "fishing-tackle": "Lures and tackle",
+    "fish-finders": "Fish finders",
+    "hunting-optics": "Scopes, binoculars and rangefinders",
+    archery: "Bows and archery",
+    "hunting-gear": "Hunting gear, blinds and clothing",
+  },
+  "food-drink": {
+    "coffee-beans": "Coffee beans",
+    tea: "Tea",
+    "sauces-rubs": "Sauces, rubs and spices",
+    "specialty-food": "Specialty food and snacks",
+    "home-brewing": "Home brewing and winemaking",
+  },
+  "hobbies-crafts": {
+    sewing: "Sewing machines and fabric",
+    yarn: "Yarn and knitting",
+    // Moved from "design" on 2026-11-03 (US-511): a physical good, and a
+    // slug is one row, so it lives in one category.
+    "art-supplies": "Art supplies and drawing tablets",
+    "model-kits": "Model kits and RC",
+    "board-games": "Board games",
+    stationery: "Pens and stationery",
+  },
+  "home-improvement": {
+    paint: "Paint and finishes",
+    flooring: "Flooring and tiles",
+    "building-materials": "Lumber and building materials",
+    "plumbing-fixtures": "Plumbing fixtures and water heaters",
+    "electrical-lighting": "Electrical and light fixtures",
+    solar: "Solar panels and home batteries",
+    generators: "Generators and power stations",
+  },
+  "garden-outdoor": {
+    "lawn-mowers": "Lawn mowers and robot mowers",
+    tractors: "Tractors and ride-ons",
+    chainsaws: "Chainsaws and trimmers",
+    "garden-tools": "Garden tools",
+    irrigation: "Irrigation and pumps",
   },
   // Business services (US-429)
   "web-development": {

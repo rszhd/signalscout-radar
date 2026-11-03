@@ -34,6 +34,11 @@ disable X". Answers given the same day:
   `servicesEnabled` are false; the software subreddits are gone; the forum
   niches about hosting, SEO, programming, selling online, small business,
   money, property and travel are left out (164 forums, 44 niches).
+- **Six goods categories added, firearms refused** (owner, 2026-11-03: "yes
+  build it, refuse firearms"): Music gear, Fishing & hunting, Food & drink,
+  Hobbies & crafts, Home improvement & energy, Garden & outdoor power; boats
+  and RVs in Cars & bikes, golf in Sports, radios in Tools. `art-supplies`
+  moved from the hidden "design" category to Hobbies & crafts.
 - **Filter**: "add the best/vs phrases, ensure the filters are good and
   optimized for physical products".
 
@@ -81,3 +86,11 @@ thread's own, and drops a thread older than the plan's window.
   own charge is not in it). home-barista.com's feed listed replies
   (`feed.php`); Radar's copy now reads `feed.php?mode=topics`, not yet
   checked live. 20 goods subreddits probed (one page each, $0.038): 7 added.
+- 2026-11-03 12:29 +08: the 79 posts the filter passes in both samples,
+  sorted on the Claude bridge with the old and the new categories (158
+  calls): 37 kept both times; real requests lost as "other" 5 -> 2 (both
+  gun-related); firearm threads kept 2 -> 0. Flocking adhesive and an old
+  La Marzocco are now kept; solar generator, fence paint and epoxy moved to
+  Home improvement. "Steel prairie dog target?" is kept under Fishing &
+  hunting: the owner to say if shooting targets are refused too. No music,
+  food or garden post was in the samples.

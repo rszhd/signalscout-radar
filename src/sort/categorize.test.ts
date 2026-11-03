@@ -52,3 +52,20 @@ describe("buildSystemPrompt", () => {
     expect(prompt).not.toContain("alt-steelcase");
   });
 });
+
+describe("the prompt for physical goods (US-511)", () => {
+  const prompt = buildSystemPrompt([]);
+
+  it("offers the goods categories, the new ones too, and no software or service", () => {
+    for (const slug of ["music-gear", "fishing-hunting", "food-drink", "hobbies-crafts", "home-improvement", "garden-outdoor", "pets"]) {
+      expect(prompt).toContain(`- ${slug}:`);
+    }
+    for (const slug of ["sales-crm", "developer-ai", "web-development"]) expect(prompt).not.toContain(`- ${slug}:`);
+  });
+
+  it("refuses firearms and ammunition, and keeps other hunting gear", () => {
+    expect(prompt).toContain("which firearm, ammunition or firearm part to buy");
+    expect(prompt).toContain("Hunting optics, archery, clothing and other hunting gear still count");
+    expect(prompt).toContain("Software, an app, a website");
+  });
+});
