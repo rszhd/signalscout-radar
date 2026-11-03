@@ -96,8 +96,10 @@ const subreddits = {
 
 /**
  * Forums (US-511), last and with half of each run (owner, 2026-11-03: $1 a
- * day, "50-50 between reddit and forums"), 12 forums an hour. Each run
- * reads 12 niches of the 52, each at its next forum (`forumsForTurn`). One
+ * day, "50-50 between reddit and forums"), 8 forums an hour. Each run
+ * reads 8 niches of the 44, each at its next forum (`forumsForTurn`). The
+ * owner chose 8 over 12 the same day: half of a $1 day pays for 12 feed reads
+ * an hour and almost no thread page, and a kept cut post needs its page. One
  * feed read is one call through the browser: Bright Data bills nothing for
  * it, so its cost is the browser's, estimated as BuyerFinder does
  * (`estimateBrowserMicros`): browser time at $0.02 an hour, a minute at
@@ -137,10 +139,12 @@ const forumPlan: SearchPlan | undefined = forumsReady
       credentials: { apiKey: env.BRIGHTDATA_API_KEY, unlockerZone: env.BRIGHTDATA_UNLOCKER_ZONE },
       share: 0.5,
       phrases: [],
-      feeds: (turn) => forumsForTurn(turn, 12).map((forum) => ({ name: forum.name, url: forum.feed })),
-      // The first read of a forum reaches back two days; `seen_posts` removes
-      // the overlap after it. A thread older than that is no new request.
-      lookBackMs: 48 * 60 * 60 * 1000,
+      feeds: (turn) => forumsForTurn(turn, 8).map((forum) => ({ name: forum.name, url: forum.feed })),
+      // A feed's threads active in the last three days, and of those, the ones
+      // started in them: an older thread with a new reply is no new request.
+      // Three days, the owner's choice on 2026-11-03: at two, 7 of 12 thread
+      // pages bought in a live run were for threads started before it.
+      lookBackMs: 72 * 60 * 60 * 1000,
       maxPages: 1,
       limit: 50,
       // The worst call: a browser minute and a page, then Bright Data's page

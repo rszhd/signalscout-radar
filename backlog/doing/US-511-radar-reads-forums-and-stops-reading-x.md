@@ -27,6 +27,8 @@ disable X". Answers given the same day:
 - **Budget $1 a day, half Reddit, half forums** (the owner first said $0.5,
   then $0.75, then "up the budget to $1 daily, 50-50 between reddit and
   forums"). `RADAR_DAILY_CAP_USD` is the owner's edit on the box.
+- **8 forums an hour, threads started in the last 3 days** (owner, 2026-11-03,
+  after the live run: "A, accept threads started in the last 3 days").
 - **Physical goods only**: "remove software and hiring/service for now and
   focus on physical goods for niche small business". `softwareEnabled` and
   `servicesEnabled` are false; the software subreddits are gone; the forum
