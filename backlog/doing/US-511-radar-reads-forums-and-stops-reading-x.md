@@ -110,3 +110,9 @@ thread's own, and drops a thread older than the plan's window.
   Of 118 with no India sign in the title or subreddit, 5 were not India
   ("RS63"/"RS390" part names, "blame the Indian not the arrow", a UAE buyer)
   and were shown again: 323 stay hidden.
+- 2026-11-04T11:42+08:00 — The owner still saw r/TwentiesIndia and
+  r/techIndia posts: neither the rule nor the hide read the subreddit name.
+  Now the worker drops posts from a subreddit or forum with an Indian name
+  before the model (`inIndianPlace`; Indiana and Indianapolis kept), and the
+  model rule names the SUBREDDIT/FORUM line. Old posts: a hide by place
+  name, marker removed_at 2026-11-04 00:00:01+00. 153 tests pass.

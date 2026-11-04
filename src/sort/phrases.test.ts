@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { offersWork, readsLikeRequest } from "./phrases.ts";
+import { inIndianPlace, offersWork, readsLikeRequest } from "./phrases.ts";
 
 describe("readsLikeRequest", () => {
   it.each([
@@ -84,5 +84,16 @@ describe("offersWork", () => {
     (title) => {
       expect(offersWork(title, "")).toBe(false);
     },
+  );
+});
+
+describe("inIndianPlace", () => {
+  it.each(["TwentiesIndia", "techIndia", "IndianGamers", "iemlndia", "CarsIndia", "bangalore", "Hyderabad_city", "FitTamil", "AskIndianWomen"])(
+    "drops r/%s",
+    (name) => expect(inIndianPlace(name)).toBe(true),
+  );
+  it.each(["Indiana", "indianapolis", "IndianaHoosiers", "SuggestALaptop", "BuyItForLife", "www.smokingmeatforums.com", undefined, null])(
+    "keeps %s",
+    (name) => expect(inIndianPlace(name)).toBe(false),
   );
 });

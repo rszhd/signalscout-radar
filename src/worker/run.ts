@@ -15,7 +15,7 @@ import type { Sql } from "../db/client.ts";
 import { alreadySeen, forgetOld, markSeen, saveRequest, spentToday } from "../db/queries.ts";
 import { forgetIdleProposals, proposeTags, showBusyProposals } from "../db/tags.ts";
 import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
-import { offersWork, readsLikeRequest } from "../sort/phrases.ts";
+import { inIndianPlace, offersWork, readsLikeRequest } from "../sort/phrases.ts";
 
 export interface SearchPlan {
   readonly platform: "reddit" | "x" | "forum";
@@ -243,6 +243,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           const toSort = fresh.filter(
             (post) =>
               !offersWork(post.title, post.text) &&
+              !inIndianPlace(post.channel) &&
               (!input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`, post.title)),
           );
           // What the filter set aside is handled: it will never be sorted.

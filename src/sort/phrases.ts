@@ -65,3 +65,16 @@ export function readsLikeRequest(text: string, title?: string): boolean {
   if (title && titlePhrase.test(title) && !forSale.test(title)) return true;
   return (text.includes("?") && (requestPhrase.test(text) || buyingPhrase.test(text))) || hirePhrase.test(text);
 }
+
+/**
+ * A subreddit or forum for India, by its name (owner, 2026-11-04: India is
+ * not Radar's market). Many posts there never name the country, so the
+ * model cannot tell; the name can, for free. "Indiana" and "Indianapolis"
+ * are left alone; "lndia" is a common spelling with a lower-case L.
+ */
+const indianPlace =
+  /(india(?!na)|lndia|bharat|bangalore|bengaluru|mumbai|delhi|hyderabad|chennai|pune|kolkata|noida|gurgaon|gurugram|ahmedabad|jaipur|kochi|chandigarh|kerala|tamil|telugu|kannada|marathi)/i;
+
+export function inIndianPlace(channel: string | null | undefined): boolean {
+  return Boolean(channel && indianPlace.test(channel));
+}
