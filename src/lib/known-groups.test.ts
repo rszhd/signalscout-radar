@@ -21,11 +21,11 @@ describe("Facebook groups (US-518)", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("reads 8 groups from 8 niches a run, and reaches every group in time", () => {
+  it("reads 12 groups from 12 niches a run, and reaches every group in time", () => {
     const seen = new Set<string>();
     for (let turn = 0; turn < 200; turn += 1) {
-      const picked = forumsForTurn(turn, 8, knownGroups);
-      expect(new Set(picked.map((group) => group.niche)).size).toBe(8);
+      const picked = forumsForTurn(turn, 12, knownGroups);
+      expect(new Set(picked.map((group) => group.niche)).size).toBe(12);
       for (const group of picked) seen.add(group.key);
     }
     expect(seen.size).toBe(knownGroups.length);

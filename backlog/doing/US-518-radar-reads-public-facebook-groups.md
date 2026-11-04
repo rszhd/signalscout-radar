@@ -87,3 +87,8 @@ after the free filter. Not measured on Radar yet.
   `fetched` was added and only again after a model batch. Fixed (save after
   the filter), and Facebook posts now skip the text filter, as subreddits do
   (owner). Model calls go through the bridge at no cost; about 450 more a day.
+- 2026-11-05T04:03+08:00 — Owner: Reddit $0.30, Facebook $0.60, forums
+  $0.60 a day (cap stays $1.50). Shares 0.21/1.5 subreddits, 0.09/1.5
+  keyword search, 0.6/1.5 Facebook, 0.6/1.5 forums. Owner chose 12 groups
+  and 10 forums an hour (was 8 and 8), so the money is used: about $0.54 and
+  $0.48 a day at the first runs' prices.

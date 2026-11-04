@@ -64,11 +64,11 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
 
 /**
  * Physical goods only (owner, 2026-11-03, US-511): no software and no hiring
- * subreddits. Reddit, Facebook groups and forums split each run's money in
- * thirds (owner, 2026-11-05: $1.50 a day, up from $1, when Facebook was
- * added; Reddit and forums keep the $0.50 a day each they had): the goods
- * subreddits get 0.35 of $1, the Reddit keyword search 0.15, Facebook and the
- * forums $0.50 each. The subreddits are read every third hour, so in the other
+ * subreddits. Reddit, Facebook groups and forums split each run's money
+ * (owner, 2026-11-05: $1.50 a day; Reddit $0.30, Facebook $0.60, forums
+ * $0.60, after the first Facebook runs found few requests): the goods
+ * subreddits get $0.21, the Reddit keyword search $0.09 (their earlier 70/30
+ * split), Facebook and the forums $0.60 each. The subreddits are read every third hour, so in the other
  * hours their share passes to the keyword search. What a plan leaves unspent
  * passes to the plans after it, and the forums come last, so they get what
  * Reddit and Facebook leave.
@@ -100,12 +100,13 @@ const subreddits = {
 };
 
 /**
- * Forums (US-511), last and with a third of each run (owner, 2026-11-03: $1 a
- * day, "50-50 between reddit and forums"; 2026-11-05: $1.50 with Facebook,
- * the forums keeping their $0.50), 8 forums an hour. Each run
- * reads 8 niches of the 44, each at its next forum (`forumsForTurn`). The
- * owner chose 8 over 12 the same day: half of a $1 day pays for 12 feed reads
- * an hour and almost no thread page, and a kept cut post needs its page. One
+ * Forums (US-511), last, with $0.60 of the day's $1.50 (owner, 2026-11-03: $1 a
+ * day, "50-50 between reddit and forums"; 2026-11-05: $0.60 and 10 forums an
+ * hour). Each run reads 10 niches of the 44, each at its next forum
+ * (`forumsForTurn`). On 2026-11-03 the owner chose 8 over 12: half of a $1
+ * day paid for 12 feed reads an hour and almost no thread page, and a kept
+ * cut post needs its page. The first runs of 2026-11-05 cost about $0.002 a
+ * feed read, so 10 an hour is about $0.48 a day, with room for pages. One
  * feed read is one call through the browser: Bright Data bills nothing for
  * it, so its cost is the browser's, estimated as BuyerFinder does
  * (`estimateBrowserMicros`): browser time at $0.02 an hour, a minute at
@@ -143,9 +144,9 @@ const forumPlan: SearchPlan | undefined = forumsReady
         },
       }).create(runtime),
       credentials: { apiKey: env.BRIGHTDATA_API_KEY, unlockerZone: env.BRIGHTDATA_UNLOCKER_ZONE },
-      share: 1 / 3,
+      share: 0.6 / 1.5,
       phrases: [],
-      feeds: (turn) => forumsForTurn(turn, 8).map((forum) => ({ name: forum.name, url: forum.feed })),
+      feeds: (turn) => forumsForTurn(turn, 10).map((forum) => ({ name: forum.name, url: forum.feed })),
       // A feed's threads active in the last three days, and of those, the ones
       // started in them: an older thread with a new reply is no new request.
       // Three days, the owner's choice on 2026-11-03: at two, 7 of 12 thread
@@ -166,12 +167,13 @@ const forumPlan: SearchPlan | undefined = forumsReady
   : undefined;
 
 /**
- * Public Facebook groups (US-518), 8 an hour from 8 niches, rotated as the
- * forums are, from BuyerFinder's list (`lib/known-groups.ts`). One page of 3
- * or 4 posts a group, one ScrapeCreators credit, billed even when nothing is
- * new: 8 an hour is about 192 credits ($0.36) a day, inside Facebook's $0.50
- * with room for the model. The probe of 2026-11-04 found 2 to 4 posts a day
- * in an owner group, and a group comes round every 15 hours or so, so one
+ * Public Facebook groups (US-518), 12 an hour from 12 niches (owner,
+ * 2026-11-05; 8 before), rotated as the forums are, from BuyerFinder's list
+ * (`lib/known-groups.ts`). One page of 3 or 4 posts a group, one
+ * ScrapeCreators credit, billed even when nothing is new: 12 an hour is about
+ * 288 credits ($0.54) a day, inside Facebook's $0.60 with room for the model.
+ * The probe of 2026-11-04 found 2 to 4 posts a day in an owner group, and a
+ * group comes round every 11 hours or so, so one
  * page catches most of them. A group the provider calls unavailable is skipped
  * by the connector and billed nothing. Every post goes to the model with no
  * text filter, as a subreddit's do (owner, 2026-11-05): in the first 5 runs on
@@ -187,9 +189,9 @@ const facebookPlan: SearchPlan = {
   platform: "facebook",
   source: createScrapeCreatorsFacebook({ pagesPerGroup: 1 }).create(facebookRuntime),
   credentials: redditKey,
-  share: 0.5 / 1.5,
+  share: 0.6 / 1.5,
   phrases: [],
-  feeds: (turn) => forumsForTurn(turn, 8, knownGroups).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
+  feeds: (turn) => forumsForTurn(turn, 12, knownGroups).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
   feedsSkipFilter: true,
   lookBackMs: 72 * 60 * 60 * 1000,
   maxPages: 1,
@@ -203,7 +205,7 @@ const plans: SearchPlan[] = [
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.35 / 1.5,
+    share: 0.21 / 1.5,
     ...subreddits,
     channels: [
       "SuggestALaptop",
@@ -238,7 +240,7 @@ const plans: SearchPlan[] = [
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.15 / 1.5,
+    share: 0.09 / 1.5,
     phrases: [
       "can anyone recommend",
       "which should I buy",
