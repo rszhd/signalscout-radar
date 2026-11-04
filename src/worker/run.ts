@@ -39,6 +39,12 @@ export interface SearchPlan {
    */
   readonly feeds?: (turn: number) => readonly { readonly name: string; readonly url: string }[];
   /**
+   * Send every new post of a feed to the model, as a subreddit's are, with no
+   * text filter. For Facebook groups (US-518): their posts are short and
+   * rarely use a request phrase.
+   */
+  readonly feedsSkipFilter?: boolean;
+  /**
    * What the plan spent outside the units its source reports, since the last
    * ask: a forum's browser, which the engine counts no unit for (US-511).
    * Read after every call.
@@ -204,7 +210,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
         [
           ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
           ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
-          ...(plan.feeds?.(turn) ?? []).map((feed) => ({ text: feed.name, queries: [feed.url], channels: [], filter: true })),
+          ...(plan.feeds?.(turn) ?? []).map((feed) => ({
+            text: feed.name,
+            queries: [feed.url],
+            channels: [],
+            filter: !plan.feedsSkipFilter,
+          })),
         ],
         turn,
       );
@@ -249,6 +260,11 @@ export async function run(options: RunOptions): Promise<RunResult> {
           // What the filter set aside is handled: it will never be sorted.
           await markSeen(sql, plan.platform, fresh.filter((post) => !toSort.includes(post)).map((post) => post.externalId));
           add("filtered", toSort.length);
+          // Saved here too: when the filter sets every post aside no model
+          // batch saves after this, and the next input replaces `phrase`, so
+          // the row kept fetched 0 (US-518: 33 of 40 Facebook reads showed 0
+          // while 96 posts were read).
+          await save();
 
           // The model is the slow part, so a few calls run at once. Each one in
           // flight is counted at its worst case before it starts.

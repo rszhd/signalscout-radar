@@ -80,3 +80,10 @@ after the free filter. Not measured on Radar yet.
   clear request (RAM or CPU upgrade). Missed by the filter: an HVAC "anyone
   has this control board available?". Two of these posts are local test rows
   (phrase `local test US-518`), local DB only.
+- 2026-11-05T03:48+08:00 — First 5 box runs (16:52–19:00 UTC): 96 Facebook
+  posts read (seen_posts; the page log showed 4 posts on 23 of 24 pages), 8
+  past the text filter, 3 kept, $0.07. `phrase_stats` showed 33 of 40 reads
+  with fetched 0: a counting bug, not empty reads — the row was saved before
+  `fetched` was added and only again after a model batch. Fixed (save after
+  the filter), and Facebook posts now skip the text filter, as subreddits do
+  (owner). Model calls go through the bridge at no cost; about 450 more a day.

@@ -217,6 +217,58 @@ describe("phrase stats", () => {
     const [request] = await sql<{ phrase: string }[]>`select phrase from requests`;
     expect(request?.phrase).toBe("can anyone recommend");
   });
+
+  it("records what a phrase fetched when the filter sets all its posts aside and another phrase follows", async () => {
+    const texts: Record<string, string> = {
+      "what do you use": "Nice weather today.",
+      "can anyone recommend": "Can anyone recommend headphones for a loud office?",
+    };
+    const bySearch: SocialSource = {
+      async search(request) {
+        const phrase = request.query.queries[0] as string;
+        return { posts: [post(texts[phrase] as string)], unitsConsumed: 20, next: { status: "done" } };
+      },
+    };
+    await run(
+      options({ plans: [{ ...plan(bySearch), phrases: ["what do you use", "can anyone recommend"] }] }),
+    );
+
+    const [stat] = await sql<{ fetched: number; filtered: number }[]>`
+      select fetched, filtered from phrase_stats where phrase = 'what do you use'`;
+    expect(stat).toEqual({ fetched: 1, filtered: 0 });
+  });
+});
+
+describe("feeds with no text filter", () => {
+  it("sends every new post of a feed to the model when the plan skips the filter", async () => {
+    let sorts = 0;
+    const groupSource: SocialSource = {
+      async search() {
+        // A real request with no request phrase in it: the text filter would drop it.
+        return { posts: [post("Laptop for video editing under $1,500")], unitsConsumed: 1, next: { status: "done" } };
+      },
+    };
+    const feeds = () => [{ name: "Some Group", url: "https://www.facebook.com/groups/somegroup/" }];
+    const groupPlan: SearchPlan = {
+      ...plan(groupSource),
+      platform: "facebook",
+      phrases: [],
+      feeds,
+      maxPages: 1,
+      unitMicros: 1880,
+      worstSearchMicros: 1880,
+    };
+    const sort = async () => {
+      sorts += 1;
+      return yes();
+    };
+
+    await run(options({ plans: [groupPlan], sort }));
+    expect(sorts).toBe(0);
+
+    await run(options({ plans: [{ ...groupPlan, feedsSkipFilter: true }], sort }));
+    expect(sorts).toBe(1);
+  });
 });
 
 describe("subreddits", () => {

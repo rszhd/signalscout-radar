@@ -173,9 +173,11 @@ const forumPlan: SearchPlan | undefined = forumsReady
  * with room for the model. The probe of 2026-11-04 found 2 to 4 posts a day
  * in an owner group, and a group comes round every 15 hours or so, so one
  * page catches most of them. A group the provider calls unavailable is skipped
- * by the connector and billed nothing. Most posts in a group are not requests,
- * so they pass the phrase filter, as a forum's do. The connector returns the
- * poster's name; Radar never stores it.
+ * by the connector and billed nothing. Every post goes to the model with no
+ * text filter, as a subreddit's do (owner, 2026-11-05): in the first 5 runs on
+ * the box the filter passed 8 of 96 posts read, and a group post is short and
+ * rarely says "recommend". The connector returns the poster's name; Radar
+ * never stores it.
  */
 // One log line per Facebook page (`facebook-log.ts`), until the box's empty
 // reads are explained (2026-11-05).
@@ -188,6 +190,7 @@ const facebookPlan: SearchPlan = {
   share: 0.5 / 1.5,
   phrases: [],
   feeds: (turn) => forumsForTurn(turn, 8, knownGroups).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
+  feedsSkipFilter: true,
   lookBackMs: 72 * 60 * 60 * 1000,
   maxPages: 1,
   limit: 10,
