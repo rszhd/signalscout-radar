@@ -64,7 +64,7 @@ after the free filter. Not measured on Radar yet.
 - [x] A group the provider calls unavailable is skipped with a log line and
       costs nothing.
 - [x] One local run measured against the ScrapeCreators balance.
-- [ ] `RADAR_DAILY_CAP_USD=1.5` in the box `.env` (the owner's edit).
+- [x] `RADAR_DAILY_CAP_USD=1.5` in the box `.env` (was 1; backup `.env.bak-us518`).
 - [ ] Owner viewed the local page; pushed on the owner's word.
 
 ## Log
