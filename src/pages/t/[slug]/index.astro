@@ -74,7 +74,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
       <Pitch topic={tag.name} campaign={tag.category} />
     </div>
     {(mailReady() || places.length > 0) && (
-    <div class="order-1 space-y-6 lg:order-2 lg:sticky lg:top-24 lg:self-start">
+    <div class="order-1 space-y-6 lg:order-2 lg:self-start">
       {mailReady() && (
         <Subscribe
           client:load
