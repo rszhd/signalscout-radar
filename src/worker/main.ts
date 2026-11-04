@@ -23,6 +23,7 @@ import { createMailer } from "../lib/mail.ts";
 import { createSorter } from "../sort/categorize.ts";
 import { sendDigests } from "./digest.ts";
 import { groupAddress, knownGroups } from "../lib/known-groups.ts";
+import { loggingFetch } from "./facebook-log.ts";
 import { forumsForTurn } from "./known-forums.ts";
 import { run, type SearchPlan } from "./run.ts";
 
@@ -176,9 +177,13 @@ const forumPlan: SearchPlan | undefined = forumsReady
  * so they pass the phrase filter, as a forum's do. The connector returns the
  * poster's name; Radar never stores it.
  */
+// One log line per Facebook page (`facebook-log.ts`), until the box's empty
+// reads are explained (2026-11-05).
+const facebookRuntime = createSourceRuntime({ fetch: loggingFetch(fetch, (line) => console.log(line)) });
+
 const facebookPlan: SearchPlan = {
   platform: "facebook",
-  source: createScrapeCreatorsFacebook({ pagesPerGroup: 1 }).create(runtime),
+  source: createScrapeCreatorsFacebook({ pagesPerGroup: 1 }).create(facebookRuntime),
   credentials: redditKey,
   share: 0.5 / 1.5,
   phrases: [],
