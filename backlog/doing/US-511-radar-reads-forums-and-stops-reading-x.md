@@ -103,3 +103,10 @@ thread's own, and drops a thread older than the plan's window.
   laptops", a CA student, likely India; "Reliability?", a sports-car engine
   opinion, kept before). Posts already stored stay until hidden by hand;
   the owner has the command (marker removed_at 2026-11-04 00:00:00+00).
+- 2026-11-04T11:10+08:00 — Live since 76ebdab. The owner hid the stored
+  India posts by hand: a text match (India, Indian cities, ₹/Rs price/INR,
+  lakh, crore, Flipkart, Croma, Big Billion Days/BBD; not Pakistan, Sri
+  Lanka or "from India") hid 328, marker removed_at 2026-11-04 00:00:00+00.
+  Of 118 with no India sign in the title or subreddit, 5 were not India
+  ("RS63"/"RS390" part names, "blame the Indian not the arrow", a UAE buyer)
+  and were shown again: 323 stay hidden.
