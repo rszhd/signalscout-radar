@@ -79,6 +79,11 @@ services:
       - traefik.http.routers.signalscout-radar.entrypoints=websecure
       - traefik.http.routers.signalscout-radar.tls.certresolver=le
       - traefik.http.services.signalscout-radar.loadbalancer.server.port=4321
+      # Gzip: a tag page is 426 KB as sent, 49 KB compressed. The MCP
+      # endpoint's event streams stay uncompressed, so they arrive as written.
+      - traefik.http.routers.signalscout-radar.middlewares=signalscout-radar-compress
+      - traefik.http.middlewares.signalscout-radar-compress.compress=true
+      - traefik.http.middlewares.signalscout-radar-compress.compress.excludedcontenttypes=text/event-stream
       # The old address, moved on 2026-10-24: every path answers 301 to the
       # same path on the new one, so shared links and search results follow.
       - traefik.http.routers.signalscout-radar-moved.rule=Host(`radar.signalscout.run`)
