@@ -23,9 +23,10 @@ export function mailReady(): boolean {
 }
 
 /**
- * The trends page (US-463), hidden for now (owner, 2026-10-26): off, it is a
- * 404 and no menu, home page or sitemap links to it. Its queries stay, and
- * the MCP tools use them.
+ * The trends page (US-463) and the "Where people ask" box on tag pages,
+ * hidden for now (owner, 2026-10-26; the box too, 2026-11-04): off, the page
+ * is a 404, no menu, home page or sitemap links to it, and tag pages leave
+ * the box out. The queries stay, and the MCP tools use them.
  */
 export const trendsShown = false;
 

@@ -92,3 +92,7 @@ instead of ranking raw totals across sources as if they were demand.
   `/trends` is a 404, and the menu, home page and sitemap no longer link
   it. "Where people ask" on tag pages stays, and so do the queries, which
   the MCP tools use. Turn the switch on to show the page again.
+- 2026-11-04T11:06+08:00 — The owner asked why "Where people ask" still
+  showed: the trends were to be hidden. The box now reads `trendsShown`
+  too, and the tag page skips its query while the switch is off. Shown
+  locally to the owner; 136 tests pass, typecheck and build clean.

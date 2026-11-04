@@ -12,7 +12,7 @@ import { requestsTagged, shownTag, shownTags } from "@/db/tags.ts";
 import { tagChannels } from "@/db/trends.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
-import { mailReady } from "@/lib/site.ts";
+import { mailReady, trendsShown } from "@/lib/site.ts";
 import { placeOf } from "@/lib/place";
 import { toCard } from "@/lib/present";
 import { categoryBySlug } from "@/sort/categories.ts";
@@ -26,7 +26,8 @@ const now = new Date();
 const [rows, all, channels] = await Promise.all([
   requestsTagged(sql, tag.slug, 100),
   shownTags(sql, now),
-  tagChannels(sql, tag.slug, 6, now),
+  // US-463: hidden with the trends page.
+  trendsShown ? tagChannels(sql, tag.slug, 6, now) : [],
 ]);
 const cards = rows.map((row) => toCard(row, now));
 const siblings = all.filter((other) => other.category === tag.category);
