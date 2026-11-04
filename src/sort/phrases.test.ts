@@ -92,6 +92,11 @@ describe("inIndianPlace", () => {
     "drops r/%s",
     (name) => expect(inIndianPlace(name)).toBe(true),
   );
+  it("drops a cross-post whose link names an Indian subreddit", () => {
+    expect(inIndianPlace("OfficeChairs", "https://www.reddit.com/r/ErgonomicIndia/comments/1xfzaps/best_ergo_chair/")).toBe(true);
+    expect(inIndianPlace("Monitors", "/r/IndianGaming/comments/1xmq25h/24_inch_fhd_monitor/")).toBe(true);
+    expect(inIndianPlace("OfficeChairs", "https://www.reddit.com/r/OfficeChairs/comments/1abc/chair_for_india_trip/")).toBe(false);
+  });
   it.each(["Indiana", "indianapolis", "IndianaHoosiers", "SuggestALaptop", "BuyItForLife", "www.smokingmeatforums.com", undefined, null])(
     "keeps %s",
     (name) => expect(inIndianPlace(name)).toBe(false),

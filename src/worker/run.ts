@@ -243,7 +243,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           const toSort = fresh.filter(
             (post) =>
               !offersWork(post.title, post.text) &&
-              !inIndianPlace(post.channel) &&
+              !inIndianPlace(post.channel, post.url) &&
               (!input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`, post.title)),
           );
           // What the filter set aside is handled: it will never be sorted.

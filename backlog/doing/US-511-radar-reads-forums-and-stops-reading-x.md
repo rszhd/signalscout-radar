@@ -116,3 +116,8 @@ thread's own, and drops a thread older than the plan's window.
   before the model (`inIndianPlace`; Indiana and Indianapolis kept), and the
   model rule names the SUBREDDIT/FORUM line. Old posts: a hide by place
   name, marker removed_at 2026-11-04 00:00:01+00. 153 tests pass.
+- 2026-11-04T11:48+08:00 — 157 posts hidden by place name. Live pages
+  still showed India cross-posts: Radar stores the subreddit it read
+  (r/OfficeChairs) while the link names the source (/r/ErgonomicIndia/...).
+  `inIndianPlace` now reads the link's subreddit too; old cross-posts get a
+  hide by link, marker removed_at 2026-11-04 00:00:02+00. 154 tests pass.

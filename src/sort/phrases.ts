@@ -75,6 +75,12 @@ export function readsLikeRequest(text: string, title?: string): boolean {
 const indianPlace =
   /(india(?!na)|lndia|bharat|bangalore|bengaluru|mumbai|delhi|hyderabad|chennai|pune|kolkata|noida|gurgaon|gurugram|ahmedabad|jaipur|kochi|chandigarh|kerala|tamil|telugu|kannada|marathi)/i;
 
-export function inIndianPlace(channel: string | null | undefined): boolean {
-  return Boolean(channel && indianPlace.test(channel));
+/**
+ * The link counts too: a cross-post is stored under the subreddit Radar
+ * read (r/OfficeChairs), while its link names the one it came from
+ * (/r/ErgonomicIndia/comments/...).
+ */
+export function inIndianPlace(channel: string | null | undefined, url?: string | null): boolean {
+  const linked = url?.match(/\/r\/([A-Za-z0-9_]+)/)?.[1];
+  return [channel, linked].some((name) => Boolean(name && indianPlace.test(name)));
 }
