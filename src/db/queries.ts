@@ -91,6 +91,41 @@ export async function latestRequests(sql: Sql, limit = 50, now = new Date()): Pr
     order by posted_at desc limit ${limit}`;
 }
 
+/** Where a page of the home feed ends: the last post's time and id. */
+export interface FeedCursor {
+  readonly postedAt: Date;
+  readonly id: string;
+}
+
+/**
+ * One page of the home feed, newest first, optionally one platform, after a
+ * cursor (owner, 2026-11-05: show 20, then load 10 more at a time). The id
+ * breaks ties between posts written in the same second.
+ */
+export async function requestsPage(
+  sql: Sql,
+  options: { limit: number; platform?: RequestRow["platform"]; before?: FeedCursor },
+  now = new Date(),
+): Promise<RequestRow[]> {
+  const { limit, platform, before } = options;
+  return sql<RequestRow[]>`
+    select ${columns(sql)} from requests
+    where removed_at is null and category in ${sql(shown())} and posted_at >= ${shownSince(now)}
+      ${platform ? sql`and platform = ${platform}` : sql``}
+      ${before ? sql`and (posted_at, id) < (${before.postedAt}, ${before.id}::bigint)` : sql``}
+    order by posted_at desc, id desc limit ${limit}`;
+}
+
+/** Shown posts per platform written in the last 24 hours: the home feed's tab counts. */
+export async function platformCountsLastDay(sql: Sql, now = new Date()): Promise<Partial<Record<RequestRow["platform"], number>>> {
+  const rows = await sql<{ platform: RequestRow["platform"]; count: string }[]>`
+    select platform, count(*)::text as count from requests
+    where removed_at is null and category in ${sql(shown())}
+      and posted_at >= ${new Date(now.getTime() - 24 * 60 * 60 * 1000)}
+    group by platform`;
+  return Object.fromEntries(rows.map((row) => [row.platform, Number(row.count)]));
+}
+
 export async function requestsIn(sql: Sql, category: string, limit = 100, now = new Date()): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests

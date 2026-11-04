@@ -1,9 +1,9 @@
 ---
 import { CategoryList } from "@/components/CategoryList";
-import { Feed } from "@/components/Feed";
+import { Feed, firstPage } from "@/components/Feed";
 import Pitch from "@/components/Pitch.astro";
 import Sidebar from "@/components/Sidebar.astro";
-import { categoryCounts, lastRunAt, latestRequests } from "@/db/queries.ts";
+import { categoryCounts, lastRunAt, platformCountsLastDay, requestsPage } from "@/db/queries.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { formatAge, platforms, toCard, toTiles } from "@/lib/present";
@@ -12,10 +12,11 @@ import { servicesEnabled } from "@/sort/categories.ts";
 
 const sql = db();
 const now = new Date();
-const [counts, rows, updated] = await Promise.all([
+const [counts, rows, updated, lastDay] = await Promise.all([
   categoryCounts(sql, now),
-  latestRequests(sql, 40),
+  requestsPage(sql, { limit: firstPage }, now),
   lastRunAt(sql),
+  platformCountsLastDay(sql, now),
 ]);
 const tiles = toTiles(counts);
 const software = tiles.filter((tile) => tile.kind === "software");
@@ -97,8 +98,10 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
   <section id="latest" class="mx-auto grid max-w-[1240px] scroll-mt-20 grid-cols-[minmax(0,1fr)] gap-10 px-4 pt-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_280px]">
     <div>
       <h2 class="mb-1 text-2xl font-semibold tracking-tight">Latest requests</h2>
-      <p class="mb-5 text-[0.9375rem] text-muted-foreground">Newest first. Every post links to the original.</p>
-      <Feed client:load requests={cards} />
+      <p class="mb-5 text-[0.9375rem] text-muted-foreground">
+        Newest first. Every post links to the original. Counts are for the last 24 hours.
+      </p>
+      <Feed client:load requests={cards} paged={{ counts: lastDay }} />
       <Pitch />
     </div>
     <div class="lg:pt-[4.25rem]">

@@ -25,6 +25,8 @@ export interface Card {
   category: string;
   categoryName: string;
   age: string;
+  /** ISO time the post was written: where "Load more" continues. */
+  postedAt: string;
 }
 
 export function formatAge(from: Date, now = new Date()): string {
@@ -46,6 +48,7 @@ export function toCard(row: RequestRow, now = new Date()): Card {
     category: row.category,
     categoryName: categoryBySlug(row.category)?.name ?? row.category,
     age: formatAge(row.postedAt, now),
+    postedAt: row.postedAt.toISOString(),
   };
 }
 
