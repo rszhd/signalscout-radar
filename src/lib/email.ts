@@ -78,7 +78,7 @@ export function confirmationEmail(input: { tagNames: string[]; adding: boolean; 
 }
 
 export interface DigestPost {
-  platform: "reddit" | "x" | "forum";
+  platform: "reddit" | "x" | "forum" | "facebook";
   channel: string | null;
   url: string;
   wants: string;

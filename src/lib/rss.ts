@@ -15,7 +15,7 @@ function escape(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
-const platformName = { reddit: "Reddit", x: "X", forum: "Forum" } as const;
+const platformName = { reddit: "Reddit", x: "X", forum: "Forum", facebook: "Facebook" } as const;
 
 export function renderFeed(options: {
   title: string;

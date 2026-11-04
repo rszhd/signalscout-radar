@@ -24,8 +24,8 @@ importers:
         specifier: 1.32.1
         version: 1.32.1(zod@4.6.7)
       '@signalscout/engine':
-        specifier: 0.24.1
-        version: 0.24.1
+        specifier: 0.25.0
+        version: 0.25.0
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.1(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.7.0))
@@ -988,8 +988,8 @@ packages:
   '@shikijs/vscode-textmate@10.0.2':
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
 
-  '@signalscout/engine@0.24.1':
-    resolution: {integrity: sha512-vfcCrYDMZmASOxtSbWh/uecKT8AZpoLxmYjTkPaMce4sdRmgEksYrJcgNDLcpOlAYsCFcjTjX/UOChk9NenbXQ==}
+  '@signalscout/engine@0.25.0':
+    resolution: {integrity: sha512-X9mqcUzIrluVLSnGxaA9nN8gnTBaNUtg+qXK6nWIhnLEQQ7JiT3yENGD0+BHrzlqmPkVZgwjiBD5XorpOhVTtg==}
     engines: {node: '>=24'}
 
   '@sindresorhus/merge-streams@4.0.0':
@@ -4145,7 +4145,7 @@ snapshots:
 
   '@shikijs/vscode-textmate@10.0.2': {}
 
-  '@signalscout/engine@0.24.1':
+  '@signalscout/engine@0.25.0':
     dependencies:
       '@ai-sdk/anthropic': 4.0.49(zod@4.6.7)
       '@ai-sdk/google': 4.0.63(zod@4.6.7)

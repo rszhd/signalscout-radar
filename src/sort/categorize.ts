@@ -41,7 +41,7 @@ export const verdictSchema = z.object({
 export type Verdict = z.infer<typeof verdictSchema>;
 
 export interface PostToSort {
-  readonly platform: "reddit" | "x" | "forum";
+  readonly platform: "reddit" | "x" | "forum" | "facebook";
   readonly channel?: string;
   readonly title?: string;
   readonly text: string;
@@ -145,8 +145,10 @@ export function buildSystemPrompt(tags: readonly TagRow[] = []): string {
 
 export function buildUserPrompt(post: PostToSort): string {
   return [
-    `PLATFORM: ${{ x: "X", reddit: "Reddit", forum: "Forum" }[post.platform]}`,
-    ...(post.channel ? [`${post.platform === "forum" ? "FORUM" : "SUBREDDIT"}: ${placeOf(post.platform, post.channel)}`] : []),
+    `PLATFORM: ${{ x: "X", reddit: "Reddit", forum: "Forum", facebook: "Facebook group" }[post.platform]}`,
+    ...(post.channel
+      ? [`${{ x: "SUBREDDIT", reddit: "SUBREDDIT", forum: "FORUM", facebook: "GROUP" }[post.platform]}: ${placeOf(post.platform, post.channel)}`]
+      : []),
     ...(post.title ? [`TITLE: ${post.title}`] : []),
     "POST:",
     post.text.slice(0, 2000),

@@ -5,12 +5,13 @@
 import type { CategoryCount, RequestRow } from "@/db/queries.ts";
 import { categoryBySlug, offeredCategories } from "@/sort/categories.ts";
 
-export type Platform = "reddit" | "x" | "forum";
+export type Platform = "reddit" | "x" | "forum" | "facebook";
 
 export const platforms: Record<Platform, { name: string; icon: string }> = {
   reddit: { name: "Reddit", icon: "/brands/reddit.png" },
   x: { name: "X", icon: "/brands/x.png" },
   forum: { name: "Forum", icon: "/brands/forum.svg" },
+  facebook: { name: "Facebook", icon: "/brands/facebook.svg" },
 };
 
 export interface Card {

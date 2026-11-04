@@ -31,8 +31,10 @@ selling held only sellers' ads.
   it. Excerpt and link only, as for every source here.
 - **A post shows with the group's name** and a Facebook badge.
 
-**Open decision for the owner:** Facebook's share of the $1 a day.
-Today it is half Reddit, half forums (US-511).
+**Decided by the owner on 2026-11-05:** the cap goes from $1 to $1.50 a
+day, "add facebook to radar, set daily limit to $1.50". The split is in
+thirds, so Reddit and forums keep their $0.50 each and Facebook gets the new
+$0.50. The thirds are my reading; the owner named only the total.
 
 ## Cost
 
@@ -52,18 +54,29 @@ after the free filter. Not measured on Radar yet.
 
 ## Done when
 
-- [ ] Radar runs on an engine version that has US-516.
-- [ ] A Facebook plan reads the decided number of groups an hour, rotating
+- [x] Radar runs on an engine version that has US-516.
+- [x] A Facebook plan reads the decided number of groups an hour, rotating
       through the niches; its credits count in `runs` and in the cap.
-- [ ] Posts pass the phrase filter and the model as forum posts do; a
+- [x] Posts pass the phrase filter and the model as forum posts do; a
       firearms group or post is refused.
-- [ ] A Facebook post shows with the group's name, on the page, the emails,
+- [x] A Facebook post shows with the group's name, on the page, the emails,
       RSS and MCP, with no author name anywhere.
-- [ ] A group the provider calls unavailable is skipped with a log line and
+- [x] A group the provider calls unavailable is skipped with a log line and
       costs nothing.
-- [ ] One local run measured against the ScrapeCreators balance.
+- [x] One local run measured against the ScrapeCreators balance.
+- [ ] `RADAR_DAILY_CAP_USD=1.5` in the box `.env` (the owner's edit).
 - [ ] Owner viewed the local page; pushed on the owner's word.
 
 ## Log
 
 - 2026-11-04T14:07+08:00 — Written, on the owner's request.
+- 2026-11-05T00:46+08:00 — Built. Engine 0.25.0. 131 groups copied from
+  BuyerFinder (be48f23), without its personal finance, programming, travel
+  and web hosting groups. 8 groups an hour from 8 niches through
+  `forumsForTurn`, one page each, after Reddit and before the forums; shares
+  0.35/1.5, 0.15/1.5, 1/3, 1/3. Pages, emails, RSS and MCP name the group;
+  no author is stored. A connector read of one turn's 8 groups: 8 credits
+  (balance 9,558 before), 30 posts, 3 past the phrase filter, 1 of them a
+  clear request (RAM or CPU upgrade). Missed by the filter: an HVAC "anyone
+  has this control board available?". Two of these posts are local test rows
+  (phrase `local test US-518`), local DB only.

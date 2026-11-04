@@ -18,7 +18,7 @@ import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
 import { inIndianPlace, offersWork, readsLikeRequest } from "../sort/phrases.ts";
 
 export interface SearchPlan {
-  readonly platform: "reddit" | "x" | "forum";
+  readonly platform: "reddit" | "x" | "forum" | "facebook";
   // Only the search, and for a forum the thread page of a cut post: Radar
   // never reads replies and never checks a key.
   readonly source: Pick<SocialSource, "search" | "completePosts">;

@@ -3,7 +3,7 @@ import type { Sql } from "./client.ts";
 
 export interface RequestRow {
   id: string;
-  platform: "reddit" | "x" | "forum";
+  platform: "reddit" | "x" | "forum" | "facebook";
   url: string;
   channel: string | null;
   title: string | null;

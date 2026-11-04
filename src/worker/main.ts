@@ -11,6 +11,7 @@ import {
   type BrowserUsage,
   builtInSources,
   createBrightDataForum,
+  createScrapeCreatorsFacebook,
   createSourceRegistry,
   createSourceRuntime,
   hasBrowserCredentials,
@@ -21,6 +22,7 @@ import { allTags } from "../db/tags.ts";
 import { createMailer } from "../lib/mail.ts";
 import { createSorter } from "../sort/categorize.ts";
 import { sendDigests } from "./digest.ts";
+import { groupAddress, knownGroups } from "../lib/known-groups.ts";
 import { forumsForTurn } from "./known-forums.ts";
 import { run, type SearchPlan } from "./run.ts";
 
@@ -61,12 +63,14 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
 
 /**
  * Physical goods only (owner, 2026-11-03, US-511): no software and no hiring
- * subreddits. Reddit and forums split each run's money half and half, the
- * owner's word the same day: the goods subreddits get 35%, the Reddit keyword
- * search 15%, the forums the other 50%. The subreddits are read every third
- * hour, so in the other hours their share passes to the keyword search. What
- * a plan leaves unspent passes to the plans after it, and the forums come
- * last, so they get what Reddit leaves.
+ * subreddits. Reddit, Facebook groups and forums split each run's money in
+ * thirds (owner, 2026-11-05: $1.50 a day, up from $1, when Facebook was
+ * added; Reddit and forums keep the $0.50 a day each they had): the goods
+ * subreddits get 0.35 of $1, the Reddit keyword search 0.15, Facebook and the
+ * forums $0.50 each. The subreddits are read every third hour, so in the other
+ * hours their share passes to the keyword search. What a plan leaves unspent
+ * passes to the plans after it, and the forums come last, so they get what
+ * Reddit and Facebook leave.
  *
  * Goods subreddits give 20-24 requests in 24 posts in the laptop and
  * headphone ones (probe of 2026-09-26). Mattress, RobotVacuums, Televisions,
@@ -95,8 +99,9 @@ const subreddits = {
 };
 
 /**
- * Forums (US-511), last and with half of each run (owner, 2026-11-03: $1 a
- * day, "50-50 between reddit and forums"), 8 forums an hour. Each run
+ * Forums (US-511), last and with a third of each run (owner, 2026-11-03: $1 a
+ * day, "50-50 between reddit and forums"; 2026-11-05: $1.50 with Facebook,
+ * the forums keeping their $0.50), 8 forums an hour. Each run
  * reads 8 niches of the 44, each at its next forum (`forumsForTurn`). The
  * owner chose 8 over 12 the same day: half of a $1 day pays for 12 feed reads
  * an hour and almost no thread page, and a kept cut post needs its page. One
@@ -137,7 +142,7 @@ const forumPlan: SearchPlan | undefined = forumsReady
         },
       }).create(runtime),
       credentials: { apiKey: env.BRIGHTDATA_API_KEY, unlockerZone: env.BRIGHTDATA_UNLOCKER_ZONE },
-      share: 0.5,
+      share: 1 / 3,
       phrases: [],
       feeds: (turn) => forumsForTurn(turn, 8).map((forum) => ({ name: forum.name, url: forum.feed })),
       // A feed's threads active in the last three days, and of those, the ones
@@ -159,12 +164,38 @@ const forumPlan: SearchPlan | undefined = forumsReady
     }
   : undefined;
 
+/**
+ * Public Facebook groups (US-518), 8 an hour from 8 niches, rotated as the
+ * forums are, from BuyerFinder's list (`lib/known-groups.ts`). One page of 3
+ * or 4 posts a group, one ScrapeCreators credit, billed even when nothing is
+ * new: 8 an hour is about 192 credits ($0.36) a day, inside Facebook's $0.50
+ * with room for the model. The probe of 2026-11-04 found 2 to 4 posts a day
+ * in an owner group, and a group comes round every 15 hours or so, so one
+ * page catches most of them. A group the provider calls unavailable is skipped
+ * by the connector and billed nothing. Most posts in a group are not requests,
+ * so they pass the phrase filter, as a forum's do. The connector returns the
+ * poster's name; Radar never stores it.
+ */
+const facebookPlan: SearchPlan = {
+  platform: "facebook",
+  source: createScrapeCreatorsFacebook({ pagesPerGroup: 1 }).create(runtime),
+  credentials: redditKey,
+  share: 0.5 / 1.5,
+  phrases: [],
+  feeds: (turn) => forumsForTurn(turn, 8, knownGroups).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
+  lookBackMs: 72 * 60 * 60 * 1000,
+  maxPages: 1,
+  limit: 10,
+  unitMicros: 1880,
+  worstSearchMicros: 1880,
+};
+
 const plans: SearchPlan[] = [
   {
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.35,
+    share: 0.35 / 1.5,
     ...subreddits,
     channels: [
       "SuggestALaptop",
@@ -199,7 +230,7 @@ const plans: SearchPlan[] = [
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.15,
+    share: 0.15 / 1.5,
     phrases: [
       "can anyone recommend",
       "which should I buy",
@@ -212,6 +243,7 @@ const plans: SearchPlan[] = [
     limit: 25,
     ...redditPrices,
   },
+  facebookPlan,
   ...(forumPlan ? [forumPlan] : []),
 ];
 

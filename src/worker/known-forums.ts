@@ -188,21 +188,26 @@ export const knownForums: readonly KnownForum[] = [
  * each niche its next forum (owner, 2026-11-03: "12 forums from different
  * niche hourly, so all niche can get evenly"). Niche picks are numbered from
  * the first run on; a niche is picked every `niches / count` runs, and each
- * pick moves it to its next forum.
+ * pick moves it to its next forum. Facebook groups take turns the same way
+ * (US-518).
  */
-export function forumsForTurn(turn: number, count: number, forums: readonly KnownForum[] = knownForums): KnownForum[] {
-  const byNiche = new Map<string, KnownForum[]>();
+export function forumsForTurn<T extends { readonly niche: string } = KnownForum>(
+  turn: number,
+  count: number,
+  forums: readonly T[] = knownForums as unknown as readonly T[],
+): T[] {
+  const byNiche = new Map<string, T[]>();
   for (const forum of forums) {
     const list = byNiche.get(forum.niche) ?? [];
     list.push(forum);
     byNiche.set(forum.niche, list);
   }
   const niches = [...byNiche.keys()].sort();
-  const picked: KnownForum[] = [];
+  const picked: T[] = [];
   for (let index = 0; index < Math.min(count, niches.length); index += 1) {
     const pick = turn * count + index;
-    const list = byNiche.get(niches[pick % niches.length] as string) as KnownForum[];
-    picked.push(list[Math.floor(pick / niches.length) % list.length] as KnownForum);
+    const list = byNiche.get(niches[pick % niches.length] as string) as T[];
+    picked.push(list[Math.floor(pick / niches.length) % list.length] as T);
   }
   return picked;
 }
