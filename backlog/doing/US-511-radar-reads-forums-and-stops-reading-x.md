@@ -94,3 +94,12 @@ thread's own, and drops a thread older than the plan's window.
   Home improvement. "Steel prairie dog target?" is kept under Fishing &
   hunting; the owner then refused shooting targets too. No music,
   food or garden post was in the samples.
+- 2026-11-04T11:06+08:00 — Buyers in India refused (owner: "filter out
+  india only"; not the owner's market). Most come from global subreddits
+  (PickAnAndroidForMe, SuggestALaptop), so the model refuses them on the
+  post's own signs: India or an Indian city, rupees/lakh/crore, Flipkart,
+  Croma, Big Billion Days. 53 stored posts on the Claude bridge: 23 of 23
+  India posts refused; 28 of 30 others kept ("confused between two
+  laptops", a CA student, likely India; "Reliability?", a sports-car engine
+  opinion, kept before). Posts already stored stay until hidden by hand;
+  the owner has the command (marker removed_at 2026-11-04 00:00:00+00).

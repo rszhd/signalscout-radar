@@ -69,4 +69,9 @@ describe("the prompt for physical goods (US-511)", () => {
     expect(prompt).toContain("Hunting optics, archery, clothing and other hunting gear still count");
     expect(prompt).toContain("Software, an app, a website");
   });
+
+  it("refuses buyers in India (owner, 2026-11-04)", () => {
+    expect(prompt).toContain("comes from a buyer in India");
+    expect(prompt).toContain("Flipkart, Croma, Big Billion Days");
+  });
 });
