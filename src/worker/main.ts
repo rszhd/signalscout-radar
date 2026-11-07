@@ -22,9 +22,9 @@ import { allTags } from "../db/tags.ts";
 import { createMailer } from "../lib/mail.ts";
 import { createSorter } from "../sort/categorize.ts";
 import { sendDigests } from "./digest.ts";
-import { groupAddress, knownGroups } from "../lib/known-groups.ts";
+import { groupAddress, knownGroups, refreshKnownGroups, syncKnownGroups } from "../lib/known-groups.ts";
 import { loggingFetch } from "./facebook-log.ts";
-import { forumsForTurn } from "./known-forums.ts";
+import { forumsForTurn, knownForums } from "./known-forums.ts";
 import { run, type SearchPlan } from "./run.ts";
 
 // The cheap model rejects a JSON schema and the engine puts it in the prompt
@@ -50,6 +50,13 @@ const env = z
     // What the proxy charges a GB, in dollars: DataImpulse, $5 for 5 GB.
     RADAR_PROXY_PRICE_PER_GB: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().default(1)),
     RADAR_DAILY_CAP_USD: z.coerce.number().positive().max(20).default(2),
+    // BuyerFinder's list of Facebook groups (US-547), read with its read-only
+    // token. Without the token Radar keeps the groups its table holds.
+    RADAR_GROUPS_URL: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().url().default("https://admin.buyerfinder.run/admin/api/groups"),
+    ),
+    RADAR_GROUPS_TOKEN: z.string().trim().default(""),
     PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().url().default("https://radar.buyerfinder.run")),
   })
   .parse(process.env);
@@ -169,7 +176,7 @@ const forumPlan: SearchPlan | undefined = forumsReady
 /**
  * Public Facebook groups (US-518), 12 an hour from 12 niches (owner,
  * 2026-11-05; 8 before), rotated as the forums are, from BuyerFinder's list
- * (`lib/known-groups.ts`). One page of 3 or 4 posts a group, one
+ * (`lib/known-groups.ts`, copied before each run, US-547). One page of 3 or 4 posts a group, one
  * ScrapeCreators credit, billed even when nothing is new: 12 an hour is about
  * 288 credits ($0.54) a day, inside Facebook's $0.60 with room for the model.
  * The probe of 2026-11-04 found 2 to 4 posts a day in an owner group, and a
@@ -191,7 +198,7 @@ const facebookPlan: SearchPlan = {
   credentials: redditKey,
   share: 0.6 / 1.5,
   phrases: [],
-  feeds: (turn) => forumsForTurn(turn, 12, knownGroups).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
+  feeds: (turn) => forumsForTurn(turn, 12, knownGroups()).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
   feedsSkipFilter: true,
   lookBackMs: 72 * 60 * 60 * 1000,
   maxPages: 1,
@@ -268,7 +275,27 @@ const backfillPlans: SearchPlan[] = plans
   .filter((plan) => plan.channels !== undefined && plan.channels.length > 0)
   .map(({ everyHours: _, ...plan }) => ({ ...plan, maxPages: 2 }));
 
+const forumNiches = new Set(knownForums.map((forum) => forum.niche));
+
+/**
+ * Copy BuyerFinder's group list into the table (US-547), then read the table
+ * into memory. A failed copy keeps the table as it was, so the run goes on
+ * with the groups Radar had.
+ */
+async function prepareGroups() {
+  if (env.RADAR_GROUPS_TOKEN) {
+    try {
+      const count = await syncKnownGroups(sql, { url: env.RADAR_GROUPS_URL, token: env.RADAR_GROUPS_TOKEN, niches: forumNiches });
+      console.log(`facebook groups: ${count} from BuyerFinder`);
+    } catch (error) {
+      console.error(`facebook groups not copied, keeping the table's: ${(error as Error).message}`);
+    }
+  }
+  await refreshKnownGroups(sql, 0);
+}
+
 async function once(selected = plans, runsPerDay = 24) {
+  await prepareGroups();
   // The tags as they are now, with yesterday's proposals, so a proposed tag
   // is reused and not proposed again under another name (US-456).
   const sort = createSorter(ai, await allTags(sql));
@@ -293,6 +320,8 @@ if (!send) console.log("SMTP is not set up: no daily emails");
 /** After each run, so the 08:00 email holds the 08:00 run's posts. US-456. */
 async function digests() {
   if (!send) return;
+  // An email names each post's group (US-547).
+  await refreshKnownGroups(sql);
   const result = await sendDigests(sql, send, env.PUBLIC_URL.replace(/\/$/, ""));
   if (result.sent + result.empty + result.failed > 0) {
     console.log(`daily emails: ${result.sent} sent, ${result.empty} with no posts, ${result.failed} failed`);
