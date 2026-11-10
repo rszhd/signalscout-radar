@@ -58,6 +58,12 @@ export interface SearchPlan {
    */
   readonly phrasesSkipFilter?: boolean;
   /**
+   * Drop a post dated before the plan's look-back, even when its date is
+   * approximate. For a Facebook backfill (US-559): Google's window is a day
+   * or a week, and the owner asked for three days.
+   */
+  readonly dropBeforeSince?: boolean;
+  /**
    * What the plan spent outside the units its source reports, since the last
    * ask: a forum's browser, which the engine counts no unit for (US-511).
    * Read after every call.
@@ -316,6 +322,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           phrase.matched += await keptAmong(sql, plan.platform, seenIds);
           const toSort = fresh.filter(
             (post) =>
+              !(plan.dropBeforeSince && post.postedAt < since) &&
               !offersWork(post.title, post.text) &&
               !inIndianPlace(post.channel, post.url) &&
               (!input.filter || readsLikeRequest(`${post.title ?? ""} ${post.text}`, post.title)),

@@ -324,6 +324,36 @@ describe("feeds with no text filter", () => {
     await run(options({ plans: [{ ...searchPlan, phrasesSkipFilter: true }], sort }));
     expect(sorts).toBe(1);
   });
+
+  it("drops a post dated before the look-back when the plan asks, though its date is approximate", async () => {
+    let sorts = 0;
+    const old: CandidatePost = {
+      ...post("Which espresso machine should I buy?"),
+      externalId: "old-facebook-post",
+      postedAt: new Date(noon.getTime() - 5 * 24 * 60 * 60 * 1000),
+      postedAtIsApproximate: true,
+    };
+    const weekSource: SocialSource = {
+      async search() {
+        return { posts: [old], unitsConsumed: 1, next: { status: "done" } };
+      },
+    };
+    const backfill: SearchPlan = {
+      ...plan(weekSource),
+      platform: "facebook",
+      maxPages: 1,
+      phrasesSkipFilter: true,
+      dropBeforeSince: true,
+      lookBackMs: 3 * 24 * 60 * 60 * 1000,
+    };
+    const sort = async () => {
+      sorts += 1;
+      return yes();
+    };
+
+    await run(options({ plans: [backfill], sort }));
+    expect(sorts).toBe(0);
+  });
 });
 
 describe("subreddits", () => {

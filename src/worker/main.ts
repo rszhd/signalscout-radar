@@ -94,7 +94,8 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
  * split), Facebook and the forums 0.60 each. `RADAR_PLATFORMS` turns
  * plans off, and the plans left share the money in the same proportions
  * (owner, 2026-11-10: the Reddit keyword search alone, $0.30 a day, so it has
- * all of it). What a plan leaves unspent passes to
+ * all of it). Facebook's search terms (US-559) weigh 0.09, as Reddit's do:
+ * the owner chose $0.30 each, a $0.60 day, on 2026-11-10. What a plan leaves unspent passes to
  * the plans after it, and the forums come last, so they get what Reddit and
  * Facebook leave.
  *
@@ -239,7 +240,7 @@ const facebookPlan: SearchPlan = {
   platform: "facebook",
   source: createScrapeCreatorsFacebook({ pagesPerPhrase: 1 }).create(runtime),
   credentials: redditKey,
-  share: 0.6,
+  share: 0.09,
   phrases: searchTerms,
   phrasesSkipFilter: true,
   lookBackMs: 24 * 60 * 60 * 1000,
@@ -332,22 +333,27 @@ console.log(`platforms: ${[...platforms].join(", ")}`);
  * up to 10, one a request, not in groups: in a group the busy subreddits
  * would use up the pages before the quiet ones reach three days. Its money
  * is `RADAR_BACKFILL_CAP_USD`, outside the day's cap.
+ *
+ * Facebook (US-559, owner 2026-11-10: "backfill last 3 days"): Google offers
+ * the past day or the past week, not three days, so its terms search the
+ * week, 5 pages each (35 credits), and a result Google dates before three
+ * days ago is dropped before the model sees it. `--backfill=facebook` runs
+ * Facebook's alone.
  */
-const backfillPlans: SearchPlan[] = shared(
-  plans
-    .filter((plan) => plan.platform === "reddit")
-    .map(({ everyHours: _, ...plan }) =>
-      subredditPlan(plan)
-        ? { ...plan, combineChannels: false, lookBackMs: 72 * 60 * 60 * 1000, maxPages: 10, pagesPerInput: 10 }
-        : {
-            ...plan,
-            phrases: [...plan.phrases, ...trialTerms],
-            lookBackMs: 72 * 60 * 60 * 1000,
-            maxPages: 20,
-            pagesPerInput: 20,
-          },
-    ),
-);
+const threeDaysMs = 72 * 60 * 60 * 1000;
+const backfillPlans = (platform?: string): SearchPlan[] =>
+  shared(
+    plans
+      .filter((plan) => (platform ? plan.platform === platform : ["reddit", "facebook"].includes(plan.platform)))
+      .map(({ everyHours: _, ...plan }): SearchPlan => {
+        if (plan.platform === "facebook") {
+          return { ...plan, lookBackMs: threeDaysMs, maxPages: 5, pagesPerInput: 5, dropBeforeSince: true };
+        }
+        return subredditPlan(plan)
+          ? { ...plan, combineChannels: false, lookBackMs: threeDaysMs, maxPages: 10, pagesPerInput: 10 }
+          : { ...plan, phrases: [...plan.phrases, ...trialTerms], lookBackMs: threeDaysMs, maxPages: 20, pagesPerInput: 20 };
+      }),
+  );
 
 async function once(selected = plans, backfill = false) {
   // The table no longer chooses what is read (US-559); it still names the
@@ -390,9 +396,11 @@ if (process.argv.includes("--digests")) {
   // The daily emails alone, for a test: `pnpm worker --digests`.
   await digests();
   await sql.end();
-} else if (process.argv.includes("--backfill")) {
-  // One run of `backfillPlans`, with its own budget (RADAR_BACKFILL_CAP_USD).
-  await once(backfillPlans, true);
+} else if (process.argv.some((arg) => arg === "--backfill" || arg.startsWith("--backfill="))) {
+  // One run of `backfillPlans`, with its own budget (RADAR_BACKFILL_CAP_USD);
+  // `--backfill=facebook` (or `=reddit`) runs one platform's alone.
+  const only = process.argv.find((arg) => arg.startsWith("--backfill="))?.slice("--backfill=".length);
+  await once(backfillPlans(only), true);
   await sql.end();
   // The run's HTTP clients keep the process open after it ends: the first
   // backfill on the box (2026-11-10) finished at 03:28 and never exited.
