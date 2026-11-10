@@ -1,7 +1,8 @@
 /**
- * The worker process: one run at the top of every hour, for ever. US-415.
+ * The worker process: a run every RADAR_RUN_EVERY_HOURS hours, and the daily
+ * emails every hour, for ever. US-415.
  *
- *   node --env-file=.env src/worker/main.ts          # every hour
+ *   node --env-file=.env src/worker/main.ts          # for ever
  *   node --env-file=.env src/worker/main.ts --once   # one run, then exit
  *   node --env-file=.env src/worker/main.ts --digests  # the daily emails due now, then exit
  */
@@ -50,16 +51,28 @@ const env = z
     // What the proxy charges a GB, in dollars: DataImpulse, $5 for 5 GB.
     RADAR_PROXY_PRICE_PER_GB: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().default(1)),
     RADAR_DAILY_CAP_USD: z.coerce.number().positive().max(20).default(2),
+    // A run every this many hours, at UTC hours it divides (owner, 2026-11-10:
+    // 3). An hourly run that looks back three hours pays again for two hours
+    // of posts it has seen. The daily emails still go out every hour.
+    RADAR_RUN_EVERY_HOURS: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.coerce
+        .number()
+        .refine((hours) => [1, 2, 3, 4, 6, 8, 12, 24].includes(hours), "a whole number that divides 24")
+        .default(3),
+    ),
     // What one `--backfill` may spend, outside the day's cap.
     RADAR_BACKFILL_CAP_USD: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().max(5).default(0.5)),
-    // Which platforms a run reads, comma separated: reddit, facebook, forum.
-    // Reddit alone since 2026-11-10 (owner: "reddit only for now").
+    // What a run reads, comma separated: reddit (the search terms),
+    // subreddits, facebook, forum. The Reddit search terms alone since
+    // 2026-11-10 (owner: "turn off search by subreddits and use search terms
+    // only for now").
     RADAR_PLATFORMS: z.preprocess(
       (value) => (value === "" || value === undefined ? "reddit" : value),
       z
         .string()
         .transform((value) => value.split(",").map((name) => name.trim()).filter(Boolean))
-        .pipe(z.array(z.enum(["reddit", "facebook", "forum"])).min(1)),
+        .pipe(z.array(z.enum(["reddit", "subreddits", "facebook", "forum"])).min(1)),
     ),
     // BuyerFinder's list of Facebook groups (US-547), read with its read-only
     // token. Without the token Radar keeps the groups its table holds.
@@ -87,9 +100,9 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
  * forums $0.60, after the first Facebook runs found few requests): the goods
  * subreddits 0.21, the Reddit keyword search 0.09 (their earlier 70/30
  * split), Facebook and the forums 0.60 each. `RADAR_PLATFORMS` turns
- * platforms off, and the plans left share the money in the same proportions:
- * Reddit alone gives the subreddits 70% and the keyword search 30% (owner,
- * 2026-11-10: Reddit only, $0.30 a day). What a plan leaves unspent passes to
+ * plans off, and the plans left share the money in the same proportions
+ * (owner, 2026-11-10: the Reddit keyword search alone, $0.30 a day, so it has
+ * all of it). What a plan leaves unspent passes to
  * the plans after it, and the forums come last, so they get what Reddit and
  * Facebook leave.
  *
@@ -103,16 +116,23 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
  * page billed at that price. `pnpm phrases` ranks every input by requests per
  * dollar, so a weak one can be dropped from this list.
  */
+/**
+ * A run looks back to the run before it, and 15 minutes more for a run that
+ * started late. A search reads newest first and stops at the first older
+ * post, so a longer look back only buys pages of posts already seen.
+ */
+const runLookBackMs = (env.RADAR_RUN_EVERY_HOURS * 60 + 15) * 60 * 1000;
+
 const redditKey = { apiKey: env.SCRAPECREATORS_API_KEY };
 const reddit = registry.get("reddit", "scrapecreators");
 const redditPrices = { unitMicros: 1880, worstSearchMicros: 2 * 1880 };
 const subreddits = {
-  // Every hour, ten subreddits to a search (US-536 in the open repository,
+  // At every run, ten subreddits to a search (US-536 in the open repository,
   // here 2026-11-10): the 25 are three searches, and a quiet hour costs three
   // credits, not 25. Before, one page of each subreddit every third hour cost
   // more than the subreddits' share, so a run stopped before the last ones.
   combineChannels: true,
-  // The run's three hours, not two days: a combined search pages back until
+  // The run's look back, not two days: a combined search pages back until
   // it passes `since`, so a long look back would buy pages of posts already
   // seen on every run. A group stops at 4 pages, about 90 posts.
   maxPages: 4,
@@ -270,7 +290,11 @@ const allPlans: SearchPlan[] = [
       "any suggestions for",
       "looking for recommendations",
     ],
-    maxPages: 3,
+    // A term found about 13 new posts an hour in October and November 2026,
+    // so three hours are about two pages. Four pages leave room for a busy
+    // run; the connector's own cap is two.
+    maxPages: 4,
+    pagesPerInput: 4,
     limit: 25,
     ...redditPrices,
   },
@@ -278,9 +302,13 @@ const allPlans: SearchPlan[] = [
   ...(forumPlan ? [forumPlan] : []),
 ];
 
-/** The platforms `RADAR_PLATFORMS` names, their weights turned into shares of 1. */
+/**
+ * The plans `RADAR_PLATFORMS` names, their weights turned into shares of 1.
+ * The subreddits are named apart from Reddit's search terms.
+ */
 const platforms = new Set<string>(env.RADAR_PLATFORMS);
-const chosen = allPlans.filter((plan) => platforms.has(plan.platform));
+const subredditPlan = (plan: SearchPlan) => plan.channels !== undefined && plan.channels.length > 0;
+const chosen = allPlans.filter((plan) => platforms.has(subredditPlan(plan) ? "subreddits" : plan.platform));
 const weight = chosen.reduce((sum, plan) => sum + (plan.share ?? 0), 0);
 const plans: SearchPlan[] = chosen.map((plan) => ({ ...plan, share: (plan.share ?? 0) / weight }));
 console.log(`platforms: ${[...platforms].join(", ")}`);
@@ -294,10 +322,10 @@ console.log(`platforms: ${[...platforms].join(", ")}`);
  * subreddits would use up the pages before the quiet ones reach three days.
  * Each read stops at the first post older than three days, so a quiet
  * subreddit costs a page or two. Its money is `RADAR_BACKFILL_CAP_USD`,
- * outside the day's cap.
+ * outside the day's cap. It reads the subreddits when the hourly runs do not.
  */
-const backfillPlans: SearchPlan[] = plans
-  .filter((plan) => plan.channels !== undefined && plan.channels.length > 0)
+const backfillPlans: SearchPlan[] = allPlans
+  .filter(subredditPlan)
   .map(({ everyHours: _, ...plan }) => ({
     ...plan,
     combineChannels: false,
@@ -337,12 +365,12 @@ async function once(selected = plans, backfill = false) {
     plans: selected,
     sort,
     dailyCapMicros: Math.round((backfill ? env.RADAR_BACKFILL_CAP_USD : env.RADAR_DAILY_CAP_USD) * 1e6),
-    runsPerDay: 24,
+    runsPerDay: 24 / env.RADAR_RUN_EVERY_HOURS,
     backfill,
     // The engine prices an `ollama` call at zero. Here that is the Claude
     // bridge on the owner's subscription (src/bridge, US-455).
     worstSortMicros: ai.provider === "ollama" ? 0 : 2000,
-    lookBackMs: 3 * 60 * 60 * 1000,
+    lookBackMs: runLookBackMs,
     log: (line) => console.log(line),
   });
 }
@@ -374,11 +402,15 @@ if (process.argv.includes("--digests")) {
   await once();
   await sql.end();
 } else {
+  // A run at start, then at every UTC hour RADAR_RUN_EVERY_HOURS divides.
+  let due = true;
   for (;;) {
-    try {
-      await once();
-    } catch (error) {
-      console.error(`run failed: ${(error as Error).message}`);
+    if (due) {
+      try {
+        await once();
+      } catch (error) {
+        console.error(`run failed: ${(error as Error).message}`);
+      }
     }
     try {
       await digests();
@@ -389,5 +421,6 @@ if (process.argv.includes("--digests")) {
     next.setUTCMinutes(0, 0, 0);
     next.setUTCHours(next.getUTCHours() + 1);
     await new Promise((resolve) => setTimeout(resolve, next.getTime() - Date.now()));
+    due = next.getUTCHours() % env.RADAR_RUN_EVERY_HOURS === 0;
   }
 }
