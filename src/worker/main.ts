@@ -50,6 +50,17 @@ const env = z
     // What the proxy charges a GB, in dollars: DataImpulse, $5 for 5 GB.
     RADAR_PROXY_PRICE_PER_GB: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().default(1)),
     RADAR_DAILY_CAP_USD: z.coerce.number().positive().max(20).default(2),
+    // What one `--backfill` may spend, outside the day's cap.
+    RADAR_BACKFILL_CAP_USD: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().max(5).default(0.5)),
+    // Which platforms a run reads, comma separated: reddit, facebook, forum.
+    // Reddit alone since 2026-11-10 (owner: "reddit only for now").
+    RADAR_PLATFORMS: z.preprocess(
+      (value) => (value === "" || value === undefined ? "reddit" : value),
+      z
+        .string()
+        .transform((value) => value.split(",").map((name) => name.trim()).filter(Boolean))
+        .pipe(z.array(z.enum(["reddit", "facebook", "forum"])).min(1)),
+    ),
     // BuyerFinder's list of Facebook groups (US-547), read with its read-only
     // token. Without the token Radar keeps the groups its table holds.
     RADAR_GROUPS_URL: z.preprocess(
@@ -71,14 +82,16 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
 
 /**
  * Physical goods only (owner, 2026-11-03, US-511): no software and no hiring
- * subreddits. Reddit, Facebook groups and forums split each run's money
- * (owner, 2026-11-05: $1.50 a day; Reddit $0.30, Facebook $0.60, forums
- * $0.60, after the first Facebook runs found few requests): the goods
- * subreddits get $0.21, the Reddit keyword search $0.09 (their earlier 70/30
- * split), Facebook and the forums $0.60 each. The subreddits are read every third hour, so in the other
- * hours their share passes to the keyword search. What a plan leaves unspent
- * passes to the plans after it, and the forums come last, so they get what
- * Reddit and Facebook leave.
+ * subreddits. Reddit, Facebook groups and forums split each run's money by
+ * weight (owner, 2026-11-05, at $1.50 a day: Reddit $0.30, Facebook $0.60,
+ * forums $0.60, after the first Facebook runs found few requests): the goods
+ * subreddits 0.21, the Reddit keyword search 0.09 (their earlier 70/30
+ * split), Facebook and the forums 0.60 each. `RADAR_PLATFORMS` turns
+ * platforms off, and the plans left share the money in the same proportions:
+ * Reddit alone gives the subreddits 70% and the keyword search 30% (owner,
+ * 2026-11-10: Reddit only, $0.30 a day). What a plan leaves unspent passes to
+ * the plans after it, and the forums come last, so they get what Reddit and
+ * Facebook leave.
  *
  * Goods subreddits give 20-24 requests in 24 posts in the laptop and
  * headphone ones (probe of 2026-09-26). Mattress, RobotVacuums, Televisions,
@@ -94,14 +107,15 @@ const redditKey = { apiKey: env.SCRAPECREATORS_API_KEY };
 const reddit = registry.get("reddit", "scrapecreators");
 const redditPrices = { unitMicros: 1880, worstSearchMicros: 2 * 1880 };
 const subreddits = {
-  // A subreddit's first read reaches back a day or two; later reads find only
-  // what is new, because `seen_posts` removes the overlap.
-  lookBackMs: 48 * 60 * 60 * 1000,
-  // One page of about 23 posts, every third hour: enough for every subreddit
-  // here except r/whatcarshouldIbuy, and a sixth of the cost of two pages
-  // every hour.
-  maxPages: 1,
-  everyHours: 3,
+  // Every hour, ten subreddits to a search (US-536 in the open repository,
+  // here 2026-11-10): the 25 are three searches, and a quiet hour costs three
+  // credits, not 25. Before, one page of each subreddit every third hour cost
+  // more than the subreddits' share, so a run stopped before the last ones.
+  combineChannels: true,
+  // The run's three hours, not two days: a combined search pages back until
+  // it passes `since`, so a long look back would buy pages of posts already
+  // seen on every run. A group stops at 4 pages, about 90 posts.
+  maxPages: 4,
   limit: 25,
   phrases: [],
 };
@@ -151,7 +165,7 @@ const forumPlan: SearchPlan | undefined = forumsReady
         },
       }).create(runtime),
       credentials: { apiKey: env.BRIGHTDATA_API_KEY, unlockerZone: env.BRIGHTDATA_UNLOCKER_ZONE },
-      share: 0.6 / 1.5,
+      share: 0.6,
       phrases: [],
       feeds: (turn) => forumsForTurn(turn, 10).map((forum) => ({ name: forum.name, url: forum.feed })),
       // A feed's threads active in the last three days, and of those, the ones
@@ -196,7 +210,7 @@ const facebookPlan: SearchPlan = {
   platform: "facebook",
   source: createScrapeCreatorsFacebook({ pagesPerGroup: 1 }).create(facebookRuntime),
   credentials: redditKey,
-  share: 0.6 / 1.5,
+  share: 0.6,
   phrases: [],
   feeds: (turn) => forumsForTurn(turn, 12, knownGroups()).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
   feedsSkipFilter: true,
@@ -207,12 +221,12 @@ const facebookPlan: SearchPlan = {
   worstSearchMicros: 1880,
 };
 
-const plans: SearchPlan[] = [
+const allPlans: SearchPlan[] = [
   {
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.21 / 1.5,
+    share: 0.21,
     ...subreddits,
     channels: [
       "SuggestALaptop",
@@ -247,7 +261,7 @@ const plans: SearchPlan[] = [
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.09 / 1.5,
+    share: 0.09,
     phrases: [
       "can anyone recommend",
       "which should I buy",
@@ -264,16 +278,34 @@ const plans: SearchPlan[] = [
   ...(forumPlan ? [forumPlan] : []),
 ];
 
+/** The platforms `RADAR_PLATFORMS` names, their weights turned into shares of 1. */
+const platforms = new Set<string>(env.RADAR_PLATFORMS);
+const chosen = allPlans.filter((plan) => platforms.has(plan.platform));
+const weight = chosen.reduce((sum, plan) => sum + (plan.share ?? 0), 0);
+const plans: SearchPlan[] = chosen.map((plan) => ({ ...plan, share: (plan.share ?? 0) / weight }));
+console.log(`platforms: ${[...platforms].join(", ")}`);
+
 /**
- * The subreddits once, two pages each and every one of them, for posts the
- * hourly runs missed. The connectors stop every input at two pages, so this is
- * as far back as a run can reach: phrase searches find only the last hour or
- * so, and an hourly run reads one page of each subreddit. Added on 2026-10-24
- * after 16 days with no posts kept.
+ * The subreddits once, every one of them three days back, for posts the
+ * hourly runs missed (added 2026-10-24 after 16 days with no posts kept; three
+ * days and 10 pages on 2026-11-10, to fill the page after a pause). Phrase
+ * searches find only the last hour or so, so they are not backfilled. One
+ * subreddit a request, not the hourly runs' groups: in a group the busy
+ * subreddits would use up the pages before the quiet ones reach three days.
+ * Each read stops at the first post older than three days, so a quiet
+ * subreddit costs a page or two. Its money is `RADAR_BACKFILL_CAP_USD`,
+ * outside the day's cap.
  */
 const backfillPlans: SearchPlan[] = plans
   .filter((plan) => plan.channels !== undefined && plan.channels.length > 0)
-  .map(({ everyHours: _, ...plan }) => ({ ...plan, maxPages: 2 }));
+  .map(({ everyHours: _, ...plan }) => ({
+    ...plan,
+    combineChannels: false,
+    lookBackMs: 72 * 60 * 60 * 1000,
+    maxPages: 10,
+    pagesPerInput: 10,
+    share: 1,
+  }));
 
 const forumNiches = new Set(knownForums.map((forum) => forum.niche));
 
@@ -283,6 +315,7 @@ const forumNiches = new Set(knownForums.map((forum) => forum.niche));
  * with the groups Radar had.
  */
 async function prepareGroups() {
+  if (!platforms.has("facebook")) return;
   if (env.RADAR_GROUPS_TOKEN) {
     try {
       const count = await syncKnownGroups(sql, { url: env.RADAR_GROUPS_URL, token: env.RADAR_GROUPS_TOKEN, niches: forumNiches });
@@ -294,7 +327,7 @@ async function prepareGroups() {
   await refreshKnownGroups(sql, 0);
 }
 
-async function once(selected = plans, runsPerDay = 24) {
+async function once(selected = plans, backfill = false) {
   await prepareGroups();
   // The tags as they are now, with yesterday's proposals, so a proposed tag
   // is reused and not proposed again under another name (US-456).
@@ -303,8 +336,9 @@ async function once(selected = plans, runsPerDay = 24) {
     sql,
     plans: selected,
     sort,
-    dailyCapMicros: Math.round(env.RADAR_DAILY_CAP_USD * 1e6),
-    runsPerDay,
+    dailyCapMicros: Math.round((backfill ? env.RADAR_BACKFILL_CAP_USD : env.RADAR_DAILY_CAP_USD) * 1e6),
+    runsPerDay: 24,
+    backfill,
     // The engine prices an `ollama` call at zero. Here that is the Claude
     // bridge on the owner's subscription (src/bridge, US-455).
     worstSortMicros: ai.provider === "ollama" ? 0 : 2000,
@@ -333,8 +367,8 @@ if (process.argv.includes("--digests")) {
   await digests();
   await sql.end();
 } else if (process.argv.includes("--backfill")) {
-  // One run of `backfillPlans`, out of what is left of today's cap.
-  await once(backfillPlans, 1);
+  // One run of `backfillPlans`, with its own budget (RADAR_BACKFILL_CAP_USD).
+  await once(backfillPlans, true);
   await sql.end();
 } else if (process.argv.includes("--once")) {
   await once();

@@ -33,6 +33,13 @@ export interface SearchPlan {
    */
   readonly channels?: readonly string[];
   /**
+   * Read the subreddits ten to a search, `subreddit:a OR subreddit:b`, not
+   * one a request (engine 0.26.4, US-536). A quiet hour then costs one credit
+   * a group, not one a subreddit. The search can miss a few posts that a read
+   * of each subreddit returns: BuyerFinder measured 0.5% to 3%.
+   */
+  readonly combineChannels?: boolean;
+  /**
    * Forums, each read through its newest-threads feed (US-511). A feed is
    * one call, and its posts pass the text filter as a phrase's do: most
    * threads on a forum are not requests.
@@ -68,6 +75,11 @@ export interface SearchPlan {
   readonly lookBackMs?: number;
   /** Pages per phrase or subreddit per run, at most. */
   readonly maxPages: number;
+  /**
+   * Pages the connector may read for one input, when its own cap (two for
+   * Reddit) is too few: a backfill of a busy subreddit. The engine allows 20.
+   */
+  readonly pagesPerInput?: number;
   /** Posts asked for per page. */
   readonly limit: number;
   /** The dearest one search call can cost, in micro-dollars. */
@@ -91,6 +103,11 @@ export interface RunOptions {
   readonly worstSortMicros: number;
   /** How far back a search looks. Overlap is fine: `seen_posts` removes it. */
   readonly lookBackMs: number;
+  /**
+   * A backfill: `dailyCapMicros` is this run's own budget, and its spend is
+   * left out of the day's, so the hourly runs keep their cap.
+   */
+  readonly backfill?: boolean;
   readonly now?: () => Date;
   readonly log?: (line: string) => void;
 }
@@ -105,6 +122,26 @@ export interface RunResult {
   readonly kept: number;
   /** Searches that failed and were skipped. */
   readonly errors: number;
+}
+
+/** The most subreddits one combined search names: the engine's own group size. */
+const subredditsPerSearch = 10;
+
+/**
+ * A plan's subreddits as inputs: one each, or in groups of ten for a combined
+ * search. A group's stats row is named `r/a+b+c`.
+ */
+function channelInputs(plan: SearchPlan) {
+  const channels = plan.channels ?? [];
+  const groups: string[][] = [];
+  if (plan.combineChannels) {
+    for (let start = 0; start < channels.length; start += subredditsPerSearch) {
+      groups.push(channels.slice(start, start + subredditsPerSearch));
+    }
+  } else {
+    groups.push(...channels.map((name) => [name]));
+  }
+  return groups.map((group) => ({ text: `r/${group.join("+")}`, queries: [], channels: group, filter: false }));
 }
 
 const excerptLength = 280;
@@ -152,12 +189,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const log = options.log ?? (() => {});
 
   const start = now();
-  const before = await spentToday(sql, start);
-  const runsLeft = Math.max(1, Math.ceil(runsPerDay * (1 - utcDayFraction(start))));
+  const backfill = options.backfill === true;
+  const before = backfill ? 0 : await spentToday(sql, start);
+  const runsLeft = backfill ? 1 : Math.max(1, Math.ceil(runsPerDay * (1 - utcDayFraction(start))));
   // What a run leaves unspent carries to the runs after it, never past the day.
   const runCap = Math.max(0, dailyCapMicros - before) / runsLeft;
 
-  const [row] = await sql<{ id: string }[]>`insert into runs (started_at) values (${start}) returning id::text`;
+  const [row] = await sql<{ id: string }[]>`
+    insert into runs (started_at, backfill) values (${start}, ${backfill}) returning id::text`;
   const runId = row?.id as string;
 
   const blank = () => ({ providerMicros: 0, modelMicros: 0, fetched: 0, filtered: 0, sorted: 0, kept: 0, errors: 0 });
@@ -208,8 +247,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
       const turn = plan.everyHours ? Math.floor(hour / plan.everyHours) : hour;
       const inputs = rotate(
         [
-          ...plan.phrases.map((text) => ({ text, queries: [text], channels: [], filter: true })),
-          ...(plan.channels ?? []).map((name) => ({ text: `r/${name}`, queries: [], channels: [name], filter: false })),
+          ...plan.phrases.map((text) => ({ text, queries: [text], channels: [] as string[], filter: true })),
+          ...channelInputs(plan),
           ...(plan.feeds?.(turn) ?? []).map((feed) => ({
             text: feed.name,
             queries: [feed.url],
@@ -235,6 +274,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
               credentials: plan.credentials,
               cursor,
               limit: plan.limit,
+              ...(input.channels.length > 1 ? { combineChannels: true } : {}),
+              ...(plan.pagesPerInput ? { pagesPerInput: plan.pagesPerInput } : {}),
             });
           } catch (error) {
             // One provider answering 500 for one phrase (US-413 saw it) is no
@@ -307,7 +348,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
                   wants: sorted.verdict.wants,
                   category: sorted.verdict.category,
                   postedAt: whole.postedAt,
-                  phrase: text,
+                  // A combined search names its own subreddit, not the group.
+                  phrase: input.channels.length > 1 && whole.channel ? `r/${whole.channel}` : text,
                   tags: sorted.tagging.tags,
                 });
                 add("kept", 1);

@@ -117,6 +117,18 @@ describe("run", () => {
     expect(result.providerMicros).toBe(4000);
   });
 
+  it("gives a backfill its own budget, and leaves its spend out of the day's", async () => {
+    // The day's cap is already spent: a backfill still runs on its own money.
+    await sql`insert into runs (started_at, provider_micros) values (${new Date("2026-09-25T01:00:00Z")}, 2_000_000)`;
+    const source = endlessSource(() => []);
+    const result = await run(options({ plans: [{ ...plan(source), maxPages: 3 }], dailyCapMicros: 8000, backfill: true }));
+
+    // $0.008 of its own: two pages at $0.004, then the budget ends it.
+    expect(result.outcome).toBe("budget");
+    expect(result.providerMicros).toBe(8000);
+    expect(await spentToday(sql, noon)).toBe(2_000_000);
+  });
+
   it("never sends a post it has seen to the model again", async () => {
     const same = post("Can anyone recommend headphones for a loud office?");
     let sorts = 0;
@@ -295,6 +307,33 @@ describe("subreddits", () => {
     expect(sorts).toBe(1);
     const [stat] = await sql<{ phrase: string; kept: number }[]>`select phrase, kept from phrase_stats`;
     expect(stat).toEqual({ phrase: "r/SuggestALaptop", kept: 1 });
+  });
+
+  it("reads combined subreddits ten to a search, and names each request's own subreddit", async () => {
+    const channels = Array.from({ length: 12 }, (_, index) => `sub${index}`);
+    const requests: { channels: readonly string[]; combine: boolean | undefined }[] = [];
+    const channelSource: SocialSource = {
+      async search(request) {
+        requests.push({ channels: request.query.channels, combine: request.combineChannels });
+        const found = { ...post("Laptop for video editing under $1,500"), channel: request.query.channels[0] };
+        return { posts: [found], unitsConsumed: 1, next: { status: "done" } };
+      },
+    };
+    await run(
+      options({
+        plans: [
+          { ...plan(channelSource), phrases: [], channels, combineChannels: true, unitMicros: 1880, worstSearchMicros: 3760 },
+        ],
+      }),
+    );
+
+    expect(requests).toHaveLength(2);
+    expect(requests).toContainEqual({ channels: channels.slice(0, 10), combine: true });
+    expect(requests).toContainEqual({ channels: channels.slice(10), combine: true });
+    const stats = await sql<{ phrase: string }[]>`select phrase from phrase_stats order by phrase`;
+    expect(stats.map((stat) => stat.phrase)).toEqual([`r/${channels.slice(0, 10).join("+")}`, "r/sub10+sub11"]);
+    const kept = await sql<{ phrase: string }[]>`select phrase from requests order by phrase`;
+    expect(kept.map((row) => row.phrase)).toEqual(["r/sub0", "r/sub10"]);
   });
 });
 

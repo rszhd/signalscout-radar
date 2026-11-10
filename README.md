@@ -4,8 +4,9 @@ A free public page of people asking which product to use or buy, sorted by
 category. A product here is a physical thing: a gadget, a piece of gear, a
 tool, a part or a supply. It lives at **radar.buyerfinder.run**.
 
-Every hour a worker searches Reddit, and the newest threads of 10 forums from
-different niches, for posts like *"can anyone
+Every hour a worker searches Reddit (and, when `RADAR_PLATFORMS` turns them
+on, public Facebook groups and the newest threads of 10 forums from different
+niches) for posts like *"can anyone
 recommend…"*, *"what do you use…"* or *"is it worth buying…"*. A free text rule
 sets most of them aside. One cheap model call per remaining post decides whether
 it really asks for a product, which category the product is in, and what the
@@ -35,6 +36,7 @@ docker compose up -d        # Radar's own Postgres on 127.0.0.1:5439
 cp .env.example .env        # fill in the keys; DATABASE_URL=postgres://radar:radar@127.0.0.1:5439/radar
 pnpm migrate
 pnpm worker                 # a run every hour; add --once for one run
+pnpm worker --backfill      # the subreddits three days back, on RADAR_BACKFILL_CAP_USD
 pnpm dev                    # the page on http://localhost:4321
 pnpm test                   # needs the Postgres above
 pnpm phrases [days]         # requests kept per dollar, per phrase

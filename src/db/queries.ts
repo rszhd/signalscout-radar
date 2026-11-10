@@ -19,7 +19,8 @@ export async function spentToday(sql: Sql, now = new Date()): Promise<number> {
   const [row] = await sql<{ micros: string }[]>`
     select coalesce(sum(provider_micros + model_micros), 0)::text as micros
     from runs
-    where started_at >= ${`${day}T00:00:00Z`}::timestamptz
+    where not backfill
+      and started_at >= ${`${day}T00:00:00Z`}::timestamptz
       and started_at < ${`${day}T00:00:00Z`}::timestamptz + interval '1 day'`;
   return Number(row?.micros ?? 0);
 }
