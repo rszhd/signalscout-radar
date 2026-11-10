@@ -62,7 +62,7 @@ const env = z
         .default(3),
     ),
     // What one `--backfill` may spend, outside the day's cap.
-    RADAR_BACKFILL_CAP_USD: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().max(5).default(0.5)),
+    RADAR_BACKFILL_CAP_USD: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().max(5).default(1)),
     // What a run reads, comma separated: reddit (the search terms),
     // subreddits, facebook, forum. The Reddit search terms alone since
     // 2026-11-10 (owner: "turn off search by subreddits and use search terms
@@ -122,6 +122,21 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
  * post, so a longer look back only buys pages of posts already seen.
  */
 const runLookBackMs = (env.RADAR_RUN_EVERY_HOURS * 60 + 15) * 60 * 1000;
+
+/**
+ * Search terms tried in a backfill only, to be ranked against the hourly
+ * ones before any joins them (2026-11-10). Each asks about buying, and each
+ * passes the free text filter in a title.
+ */
+const trialTerms = [
+  "which one should I buy",
+  "worth the money",
+  "buying advice",
+  "help me choose",
+  "in the market for",
+  "should I get the",
+  "upgrade from my",
+];
 
 const redditKey = { apiKey: env.SCRAPECREATORS_API_KEY };
 const reddit = registry.get("reddit", "scrapecreators");
@@ -309,31 +324,43 @@ const allPlans: SearchPlan[] = [
 const platforms = new Set<string>(env.RADAR_PLATFORMS);
 const subredditPlan = (plan: SearchPlan) => plan.channels !== undefined && plan.channels.length > 0;
 const chosen = allPlans.filter((plan) => platforms.has(subredditPlan(plan) ? "subreddits" : plan.platform));
-const weight = chosen.reduce((sum, plan) => sum + (plan.share ?? 0), 0);
-const plans: SearchPlan[] = chosen.map((plan) => ({ ...plan, share: (plan.share ?? 0) / weight }));
+const shared = (list: readonly SearchPlan[]): SearchPlan[] => {
+  const weight = list.reduce((sum, plan) => sum + (plan.share ?? 0), 0);
+  return list.map((plan) => ({ ...plan, share: (plan.share ?? 0) / weight }));
+};
+const plans = shared(chosen);
 console.log(`platforms: ${[...platforms].join(", ")}`);
 
 /**
- * The subreddits once, every one of them three days back, for posts the
- * hourly runs missed (added 2026-10-24 after 16 days with no posts kept; three
- * days and 10 pages on 2026-11-10, to fill the page after a pause). Phrase
- * searches find only the last hour or so, so they are not backfilled. One
- * subreddit a request, not the hourly runs' groups: in a group the busy
- * subreddits would use up the pages before the quiet ones reach three days.
- * Each read stops at the first post older than three days, so a quiet
- * subreddit costs a page or two. Its money is `RADAR_BACKFILL_CAP_USD`,
- * outside the day's cap. It reads the subreddits when the hourly runs do not.
+ * The Reddit plans `RADAR_PLATFORMS` turns on, once, three days back, for
+ * posts the runs missed: to fill the page after a pause (added 2026-10-24
+ * after 16 days with no posts kept; search terms and three days on
+ * 2026-11-10). Each read stops at the first post older than three days.
+ *
+ * The search terms, with `trialTerms`, read 20 pages each (the engine's
+ * most), so `phrase_stats` ranks them by requests per dollar on equal money
+ * (owner, 2026-11-10). A search page holds about 7 posts and a term gets 14
+ * or more an hour, so 20 pages reach about 10 hours; only a quiet term
+ * reaches three days and stops sooner. A subreddit reads
+ * up to 10, one a request, not in groups: in a group the busy subreddits
+ * would use up the pages before the quiet ones reach three days. Its money
+ * is `RADAR_BACKFILL_CAP_USD`, outside the day's cap.
  */
-const backfillPlans: SearchPlan[] = allPlans
-  .filter(subredditPlan)
-  .map(({ everyHours: _, ...plan }) => ({
-    ...plan,
-    combineChannels: false,
-    lookBackMs: 72 * 60 * 60 * 1000,
-    maxPages: 10,
-    pagesPerInput: 10,
-    share: 1,
-  }));
+const backfillPlans: SearchPlan[] = shared(
+  plans
+    .filter((plan) => plan.platform === "reddit")
+    .map(({ everyHours: _, ...plan }) =>
+      subredditPlan(plan)
+        ? { ...plan, combineChannels: false, lookBackMs: 72 * 60 * 60 * 1000, maxPages: 10, pagesPerInput: 10 }
+        : {
+            ...plan,
+            phrases: [...plan.phrases, ...trialTerms],
+            lookBackMs: 72 * 60 * 60 * 1000,
+            maxPages: 20,
+            pagesPerInput: 20,
+          },
+    ),
+);
 
 const forumNiches = new Set(knownForums.map((forum) => forum.niche));
 

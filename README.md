@@ -36,7 +36,7 @@ docker compose up -d        # Radar's own Postgres on 127.0.0.1:5439
 cp .env.example .env        # fill in the keys; DATABASE_URL=postgres://radar:radar@127.0.0.1:5439/radar
 pnpm migrate
 pnpm worker                 # a run every RADAR_RUN_EVERY_HOURS hours; add --once for one run
-pnpm worker --backfill      # the subreddits three days back, on RADAR_BACKFILL_CAP_USD
+pnpm worker --backfill      # the Reddit plans turned on, three days back, on RADAR_BACKFILL_CAP_USD
 pnpm dev                    # the page on http://localhost:4321
 pnpm test                   # needs the Postgres above
 pnpm phrases [days]         # requests kept per dollar, per phrase
