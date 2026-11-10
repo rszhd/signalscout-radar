@@ -303,6 +303,27 @@ describe("feeds with no text filter", () => {
     await run(options({ plans: [{ ...groupPlan, feedsSkipFilter: true }], sort }));
     expect(sorts).toBe(1);
   });
+
+  it("sends a phrase's posts to the model when the plan skips the filter for phrases (US-559)", async () => {
+    let sorts = 0;
+    const searchSource: SocialSource = {
+      async search() {
+        // Google's snippet of a request: no request phrase in it.
+        return { posts: [post("Bambu A1 and Snapmaker U1 come up most")], unitsConsumed: 1, next: { status: "done" } };
+      },
+    };
+    const searchPlan: SearchPlan = { ...plan(searchSource), platform: "facebook", maxPages: 1 };
+    const sort = async () => {
+      sorts += 1;
+      return yes();
+    };
+
+    await run(options({ plans: [searchPlan], sort }));
+    expect(sorts).toBe(0);
+
+    await run(options({ plans: [{ ...searchPlan, phrasesSkipFilter: true }], sort }));
+    expect(sorts).toBe(1);
+  });
 });
 
 describe("subreddits", () => {
@@ -617,5 +638,25 @@ describe("forums (US-511)", () => {
     expect(rows).toEqual([
       { external_id: "forum.example:1", excerpt: "Which DAC should I buy? The whole first post.", channel: "www.forum.example" },
     ]);
+  });
+
+  it("keeps the search's title when the whole post has none (US-559)", async () => {
+    const source: SocialSource = {
+      async search() {
+        return {
+          posts: [forumPost("9", "Which espresso machine should I buy? Snippet", true, "Which espresso machine?")],
+          unitsConsumed: 0,
+          next: { status: "done" },
+        };
+      },
+      async *completePosts() {
+        const { title: _title, ...whole } = forumPost("9", "Which espresso machine should I buy? The whole post.", false);
+        yield { status: "complete", post: whole, unitsConsumed: 0 };
+      },
+    };
+    await run(options({ plans: [forumPlan(source, [0, 0])] }));
+
+    const [row] = await sql<{ title: string | null }[]>`select title from requests where external_id = 'forum.example:9'`;
+    expect(row?.title).toBe("Which espresso machine?");
   });
 });

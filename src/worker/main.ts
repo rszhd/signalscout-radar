@@ -23,9 +23,8 @@ import { allTags } from "../db/tags.ts";
 import { createMailer } from "../lib/mail.ts";
 import { createSorter } from "../sort/categorize.ts";
 import { sendDigests } from "./digest.ts";
-import { groupAddress, knownGroups, refreshKnownGroups, syncKnownGroups } from "../lib/known-groups.ts";
-import { loggingFetch } from "./facebook-log.ts";
-import { forumsForTurn, knownForums } from "./known-forums.ts";
+import { refreshKnownGroups } from "../lib/known-groups.ts";
+import { forumsForTurn } from "./known-forums.ts";
 import { run, type SearchPlan } from "./run.ts";
 
 // The cheap model rejects a JSON schema and the engine puts it in the prompt
@@ -74,13 +73,6 @@ const env = z
         .transform((value) => value.split(",").map((name) => name.trim()).filter(Boolean))
         .pipe(z.array(z.enum(["reddit", "subreddits", "facebook", "forum"])).min(1)),
     ),
-    // BuyerFinder's list of Facebook groups (US-547), read with its read-only
-    // token. Without the token Radar keeps the groups its table holds.
-    RADAR_GROUPS_URL: z.preprocess(
-      (value) => (value === "" ? undefined : value),
-      z.string().url().default("https://admin.buyerfinder.run/admin/api/groups"),
-    ),
-    RADAR_GROUPS_TOKEN: z.string().trim().default(""),
     PUBLIC_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().url().default("https://radar.buyerfinder.run")),
   })
   .parse(process.env);
@@ -215,34 +207,44 @@ const forumPlan: SearchPlan | undefined = forumsReady
   : undefined;
 
 /**
- * Public Facebook groups (US-518), 12 an hour from 12 niches (owner,
- * 2026-11-05; 8 before), rotated as the forums are, from BuyerFinder's list
- * (`lib/known-groups.ts`, copied before each run, US-547). One page of 3 or 4 posts a group, one
- * ScrapeCreators credit, billed even when nothing is new: 12 an hour is about
- * 288 credits ($0.54) a day, inside Facebook's $0.60 with room for the model.
- * The probe of 2026-11-04 found 2 to 4 posts a day in an owner group, and a
- * group comes round every 11 hours or so, so one
- * page catches most of them. A group the provider calls unavailable is skipped
- * by the connector and billed nothing. Every post goes to the model with no
- * text filter, as a subreddit's do (owner, 2026-11-05): in the first 5 runs on
- * the box the filter passed 8 of 96 posts read, and a group post is short and
- * rarely says "recommend". The connector returns the poster's name; Radar
- * never stores it.
+ * The Reddit search terms. Ranked by a backfill of 10 pages (about 250 posts)
+ * a term, a post two terms found counting for both (2026-11-10): buying
+ * advice 53 requests, is it worth buying 50, which should I buy 46, looking
+ * for recommendations 44, upgrade from my 31, can anyone recommend 26, best
+ * alternative to 22. Left out: which one should I buy 24 and worth the money
+ * 23 (they find the same posts as two terms above), any suggestions for 20,
+ * should I get the 8, help me choose 8, in the market for 3.
  */
-// One log line per Facebook page (`facebook-log.ts`), until the box's empty
-// reads are explained (2026-11-05).
-const facebookRuntime = createSourceRuntime({ fetch: loggingFetch(fetch, (line) => console.log(line)) });
+const searchTerms = [
+  "buying advice",
+  "is it worth buying",
+  "which should I buy",
+  "looking for recommendations",
+  "upgrade from my",
+  "can anyone recommend",
+  "best alternative to",
+];
 
+/**
+ * Facebook: the same terms, searched through Google in public groups (US-559,
+ * engine US-557), in place of BuyerFinder's group list (owner, 2026-11-10).
+ * One page of 10 results a term, the past day, 1 credit; a term the model
+ * keeps is then read whole, 1 credit more. A result is Google's snippet, not
+ * the post's own words, so it skips the text filter, as a group's posts did.
+ * Seven terms are 7 credits a run, about $0.11 a day every 3 hours, before
+ * the full reads. The full read returns the poster's name; Radar never
+ * stores it.
+ */
 const facebookPlan: SearchPlan = {
   platform: "facebook",
-  source: createScrapeCreatorsFacebook({ pagesPerGroup: 1 }).create(facebookRuntime),
+  source: createScrapeCreatorsFacebook({ pagesPerPhrase: 1 }).create(runtime),
   credentials: redditKey,
   share: 0.6,
-  phrases: [],
-  feeds: (turn) => forumsForTurn(turn, 12, knownGroups()).map((group) => ({ name: group.name, url: groupAddress(group.key) })),
-  feedsSkipFilter: true,
-  lookBackMs: 72 * 60 * 60 * 1000,
+  phrases: searchTerms,
+  phrasesSkipFilter: true,
+  lookBackMs: 24 * 60 * 60 * 1000,
   maxPages: 1,
+  pagesPerInput: 1,
   limit: 10,
   unitMicros: 1880,
   worstSearchMicros: 1880,
@@ -289,23 +291,7 @@ const allPlans: SearchPlan[] = [
     source: reddit,
     credentials: redditKey,
     share: 0.09,
-    // Ranked by a backfill of 10 pages (about 250 posts) a term, a post two
-    // terms found counting for both (2026-11-10): buying advice 53 requests,
-    // is it worth buying 50, which should I buy 46, looking for
-    // recommendations 44, upgrade from my 31, can anyone recommend 26, best
-    // alternative to 22. Left out: which one should I buy 24 and worth the
-    // money 23 (they find the same posts as two terms above), any
-    // suggestions for 20, should I get the 8, help me choose 8, in the
-    // market for 3.
-    phrases: [
-      "buying advice",
-      "is it worth buying",
-      "which should I buy",
-      "looking for recommendations",
-      "upgrade from my",
-      "can anyone recommend",
-      "best alternative to",
-    ],
+    phrases: searchTerms,
     // A term found about 13 new posts an hour in October and November 2026,
     // so three hours are about two pages. Four pages leave room for a busy
     // run; the connector's own cap is two.
@@ -363,28 +349,10 @@ const backfillPlans: SearchPlan[] = shared(
     ),
 );
 
-const forumNiches = new Set(knownForums.map((forum) => forum.niche));
-
-/**
- * Copy BuyerFinder's group list into the table (US-547), then read the table
- * into memory. A failed copy keeps the table as it was, so the run goes on
- * with the groups Radar had.
- */
-async function prepareGroups() {
-  if (!platforms.has("facebook")) return;
-  if (env.RADAR_GROUPS_TOKEN) {
-    try {
-      const count = await syncKnownGroups(sql, { url: env.RADAR_GROUPS_URL, token: env.RADAR_GROUPS_TOKEN, niches: forumNiches });
-      console.log(`facebook groups: ${count} from BuyerFinder`);
-    } catch (error) {
-      console.error(`facebook groups not copied, keeping the table's: ${(error as Error).message}`);
-    }
-  }
-  await refreshKnownGroups(sql, 0);
-}
-
 async function once(selected = plans, backfill = false) {
-  await prepareGroups();
+  // The table no longer chooses what is read (US-559); it still names the
+  // groups it holds, for the sorter's prompt.
+  if (platforms.has("facebook")) await refreshKnownGroups(sql, 0);
   // The tags as they are now, with yesterday's proposals, so a proposed tag
   // is reused and not proposed again under another name (US-456).
   const sort = createSorter(ai, await allTags(sql));

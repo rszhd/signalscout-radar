@@ -52,6 +52,12 @@ export interface SearchPlan {
    */
   readonly feedsSkipFilter?: boolean;
   /**
+   * Send every new post a phrase finds to the model, with no text filter.
+   * For Facebook (US-559): a result is Google's snippet of the post, which
+   * rarely holds the request phrase even when the post does.
+   */
+  readonly phrasesSkipFilter?: boolean;
+  /**
    * What the plan spent outside the units its source reports, since the last
    * ask: a forum's browser, which the engine counts no unit for (US-511).
    * Read after every call.
@@ -251,7 +257,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
       const turn = plan.everyHours ? Math.floor(hour / plan.everyHours) : hour;
       const inputs = rotate(
         [
-          ...plan.phrases.map((text) => ({ text, queries: [text], channels: [] as string[], filter: true })),
+          ...plan.phrases.map((text) => ({
+            text,
+            queries: [text],
+            channels: [] as string[],
+            filter: !plan.phrasesSkipFilter,
+          })),
           ...channelInputs(plan),
           ...(plan.feeds?.(turn) ?? []).map((feed) => ({
             text: feed.name,
@@ -426,8 +437,10 @@ async function completed(
       credentials: plan.credentials,
     })) {
       const units = result.unitsConsumed;
+      // A Facebook post read whole has no title of its own; the search's
+      // first line stays (US-559).
       return result.status === "complete"
-        ? { post: { ...result.post, externalId: post.externalId }, units }
+        ? { post: { title: post.title, ...result.post, externalId: post.externalId }, units }
         : { post: null, units };
     }
   } catch {
