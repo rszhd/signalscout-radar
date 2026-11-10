@@ -12,7 +12,7 @@
  */
 import type { CandidatePost, ModelCall, SocialSource, SourceCredentials } from "@signalscout/engine";
 import type { Sql } from "../db/client.ts";
-import { alreadySeen, forgetOld, markSeen, saveRequest, spentToday } from "../db/queries.ts";
+import { alreadySeen, forgetOld, keptAmong, markSeen, saveRequest, spentToday } from "../db/queries.ts";
 import { forgetIdleProposals, proposeTags, showBusyProposals } from "../db/tags.ts";
 import type { PostToSort, SortOutcome } from "../sort/categorize.ts";
 import { inIndianPlace, offersWork, readsLikeRequest } from "../sort/phrases.ts";
@@ -202,8 +202,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const blank = () => ({ providerMicros: 0, modelMicros: 0, fetched: 0, filtered: 0, sorted: 0, kept: 0, errors: 0 });
   const totals = blank();
   // The same counters for the phrase being searched, so a phrase can be judged
-  // by what it found per dollar (phrase_stats).
-  let phrase = { platform: "", text: "", ...blank() };
+  // by what it found per dollar (phrase_stats). `found` and `matched` are the
+  // phrase's alone: a post two phrases find counts for both (migration 008).
+  const phraseBlank = () => ({ ...blank(), found: 0, matched: 0 });
+  let phrase = { platform: "", text: "", ...phraseBlank() };
   const add = (field: keyof ReturnType<typeof blank>, amount: number) => {
     totals[field] += amount;
     phrase[field] += amount;
@@ -223,12 +225,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
       where id = ${runId}`;
     if (!phrase.text) return;
     await sql`
-      insert into phrase_stats (run_id, platform, phrase, provider_micros, model_micros, fetched, filtered, kept, errors)
+      insert into phrase_stats (run_id, platform, phrase, provider_micros, model_micros, fetched, filtered, kept, errors, found, matched)
       values (${runId}, ${phrase.platform}, ${phrase.text}, ${Math.round(phrase.providerMicros)},
-              ${Math.round(phrase.modelMicros)}, ${phrase.fetched}, ${phrase.filtered}, ${phrase.kept}, ${phrase.errors})
+              ${Math.round(phrase.modelMicros)}, ${phrase.fetched}, ${phrase.filtered}, ${phrase.kept}, ${phrase.errors},
+              ${phrase.found}, ${phrase.matched})
       on conflict (run_id, platform, phrase) do update set
         provider_micros = excluded.provider_micros, model_micros = excluded.model_micros,
-        fetched = excluded.fetched, filtered = excluded.filtered, kept = excluded.kept, errors = excluded.errors`;
+        fetched = excluded.fetched, filtered = excluded.filtered, kept = excluded.kept, errors = excluded.errors,
+        found = excluded.found, matched = excluded.matched`;
   };
 
   let outcome: RunResult["outcome"] = "done";
@@ -260,7 +264,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
       );
       inputs: for (const input of inputs) {
         const { text } = input;
-        phrase = { platform: plan.platform, text, ...blank() };
+        phrase = { platform: plan.platform, text, ...phraseBlank() };
         let cursor: string | undefined;
         for (let page = 0; page < plan.maxPages; page += 1) {
           if (!fits(plan.worstSearchMicros)) {
@@ -292,6 +296,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
           const fresh = await freshPosts(sql, plan.platform, result.posts);
           add("fetched", fresh.length);
+          // Every post the search returned counts for this phrase, and the
+          // seen ones already kept as requests count as its matches. A fresh
+          // one counts below, when this phrase keeps it.
+          const freshIds = new Set(fresh.map((post) => post.externalId));
+          const seenIds = [...new Set(result.posts.map((post) => post.externalId))].filter((id) => !freshIds.has(id));
+          phrase.found += freshIds.size + seenIds.length;
+          phrase.matched += await keptAmong(sql, plan.platform, seenIds);
           const toSort = fresh.filter(
             (post) =>
               !offersWork(post.title, post.text) &&
@@ -353,6 +364,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
                   tags: sorted.tagging.tags,
                 });
                 add("kept", 1);
+                phrase.matched += 1;
               }
             }
             // Seen only once sorted: a post the budget did not reach, or whose

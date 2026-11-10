@@ -230,6 +230,28 @@ describe("phrase stats", () => {
     expect(request?.phrase).toBe("can anyone recommend");
   });
 
+  it("counts a post two phrases find as found and matched for both, and kept for the first alone", async () => {
+    const shared = post("Can anyone recommend headphones for a loud office?");
+    const other = post("Nice weather today.");
+    const bySearch: SocialSource = {
+      async search(request) {
+        const phrase = request.query.queries[0] as string;
+        const posts = phrase === "can anyone recommend" ? [shared] : [shared, other];
+        return { posts, unitsConsumed: 20, next: { status: "done" } };
+      },
+    };
+    await run(options({ plans: [{ ...plan(bySearch), phrases: ["can anyone recommend", "which should I buy"] }] }));
+
+    const stats = await sql<{ phrase: string; found: number; matched: number; fetched: number; kept: number }[]>`
+      select phrase, found, matched, fetched, kept from phrase_stats order by phrase`;
+    expect(stats).toEqual([
+      { phrase: "can anyone recommend", found: 1, matched: 1, fetched: 1, kept: 1 },
+      { phrase: "which should I buy", found: 2, matched: 1, fetched: 1, kept: 0 },
+    ]);
+    const [run_] = await sql<{ kept: number }[]>`select kept from runs`;
+    expect(run_?.kept).toBe(1);
+  });
+
   it("records what a phrase fetched when the filter sets all its posts aside and another phrase follows", async () => {
     const texts: Record<string, string> = {
       "what do you use": "Nice weather today.",

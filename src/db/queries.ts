@@ -38,6 +38,15 @@ export async function alreadySeen(
   return new Set(rows.map((row) => row.external_id));
 }
 
+/** How many of these ids are kept requests, whichever phrase kept them. */
+export async function keptAmong(sql: Sql, platform: string, externalIds: readonly string[]): Promise<number> {
+  if (externalIds.length === 0) return 0;
+  const [row] = await sql<{ count: string }[]>`
+    select count(*)::text as count from requests
+    where platform = ${platform} and external_id in ${sql(externalIds as string[])}`;
+  return Number(row?.count ?? 0);
+}
+
 export async function markSeen(sql: Sql, platform: string, externalIds: readonly string[]) {
   if (externalIds.length === 0) return;
   await sql`
