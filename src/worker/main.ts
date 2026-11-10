@@ -124,19 +124,11 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
 const runLookBackMs = (env.RADAR_RUN_EVERY_HOURS * 60 + 15) * 60 * 1000;
 
 /**
- * Search terms tried in a backfill only, to be ranked against the hourly
- * ones before any joins them (2026-11-10). Each asks about buying, and each
- * passes the free text filter in a title.
+ * Search terms tried in a backfill only, to be ranked against the regular
+ * ones before any joins them. Empty since the ranking of 2026-11-10: its
+ * results are beside the term list below.
  */
-const trialTerms = [
-  "which one should I buy",
-  "worth the money",
-  "buying advice",
-  "help me choose",
-  "in the market for",
-  "should I get the",
-  "upgrade from my",
-];
+const trialTerms: string[] = [];
 
 const redditKey = { apiKey: env.SCRAPECREATORS_API_KEY };
 const reddit = registry.get("reddit", "scrapecreators");
@@ -297,13 +289,22 @@ const allPlans: SearchPlan[] = [
     source: reddit,
     credentials: redditKey,
     share: 0.09,
+    // Ranked by a backfill of 10 pages (about 250 posts) a term, a post two
+    // terms found counting for both (2026-11-10): buying advice 53 requests,
+    // is it worth buying 50, which should I buy 46, looking for
+    // recommendations 44, upgrade from my 31, can anyone recommend 26, best
+    // alternative to 22. Left out: which one should I buy 24 and worth the
+    // money 23 (they find the same posts as two terms above), any
+    // suggestions for 20, should I get the 8, help me choose 8, in the
+    // market for 3.
     phrases: [
-      "can anyone recommend",
-      "which should I buy",
-      "best alternative to",
+      "buying advice",
       "is it worth buying",
-      "any suggestions for",
+      "which should I buy",
       "looking for recommendations",
+      "upgrade from my",
+      "can anyone recommend",
+      "best alternative to",
     ],
     // A term found about 13 new posts an hour in October and November 2026,
     // so three hours are about two pages. Four pages leave room for a busy
