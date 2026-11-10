@@ -425,9 +425,13 @@ if (process.argv.includes("--digests")) {
   // One run of `backfillPlans`, with its own budget (RADAR_BACKFILL_CAP_USD).
   await once(backfillPlans, true);
   await sql.end();
+  // The run's HTTP clients keep the process open after it ends: the first
+  // backfill on the box (2026-11-10) finished at 03:28 and never exited.
+  process.exit(0);
 } else if (process.argv.includes("--once")) {
   await once();
   await sql.end();
+  process.exit(0);
 } else {
   // A run at start, then at every UTC hour RADAR_RUN_EVERY_HOURS divides.
   let due = true;
