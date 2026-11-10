@@ -239,23 +239,25 @@ const facebookTerms = searchTerms.filter(
 /**
  * Facebook: the product terms, searched through Google in public groups (US-559,
  * engine US-557), in place of BuyerFinder's group list (owner, 2026-11-10).
- * One page of 10 results a term, the past day, 1 credit; a term the model
- * keeps is then read whole, 1 credit more. A result is Google's snippet, not
- * the post's own words, so it skips the text filter, as a group's posts did.
- * Four terms are 4 credits a run, about $0.06 a day every 3 hours, before
- * the full reads. The full read returns the poster's name; Radar never
+ * Three pages of 10 results a term, the past day, 1 credit a page; a post the
+ * model keeps is then read whole, 1 credit more. Google ranks by relevance,
+ * so every run sees much the same first page: the backfill found 35 to 47 new
+ * posts a term in 5 pages, and the owner chose 3 pages (2026-11-10). A result
+ * is Google's snippet, not the post's own words, so it skips the text filter,
+ * as a group's posts did. Four terms are 12 credits a run, about $0.18 a day
+ * every 3 hours, before the full reads. The full read returns the poster's name; Radar never
  * stores it.
  */
 const facebookPlan: SearchPlan = {
   platform: "facebook",
-  source: createScrapeCreatorsFacebook({ pagesPerPhrase: 1 }).create(runtime),
+  source: createScrapeCreatorsFacebook({ pagesPerPhrase: 3 }).create(runtime),
   credentials: redditKey,
   share: 0.09,
   phrases: facebookTerms,
   phrasesSkipFilter: true,
   lookBackMs: 24 * 60 * 60 * 1000,
-  maxPages: 1,
-  pagesPerInput: 1,
+  maxPages: 3,
+  pagesPerInput: 3,
   limit: 10,
   unitMicros: 1880,
   worstSearchMicros: 1880,
