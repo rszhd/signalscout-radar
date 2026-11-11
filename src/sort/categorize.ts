@@ -150,6 +150,10 @@ export function buildSystemPrompt(tags: readonly TagRow[] = []): string {
     "only between named models of big brands ('iPhone 16 or Pixel 10', 'RTX",
     "4070 or 7800 XT', 'Model Y or Ioniq 5'), or asks about one exact model, a",
     "car, a phone, a console or another product only big makers build.",
+    "A part, a supply, an accessory or a repair material is fit even when it",
+    "is for a big brand's product: 'repair material for a rotted camper floor',",
+    "'a strap for my Garmin'. A question about a drug, a peptide, a hormone, a",
+    "prescription or a dose is never fit.",
     "",
     "When it is not a request, give no tags, empty strings and seller fit false.",
   ].join("\n");

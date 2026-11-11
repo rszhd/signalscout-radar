@@ -37,7 +37,7 @@ should focus on to find its customers. Steps chosen (owner, 2026-11-11):
 - [x] `GET /api/niches` returns, per product tag, posts, fit posts and judged posts for a span, for the `RADAR_NICHES_TOKEN` bearer only; unset or wrong, it is a 404.
 - [x] `scripts/judge-fit.ts` can mark stored posts, with `--limit` and `--dry-run`; running it on production is the owner's call (it goes through the Claude bridge, one call a post).
 - [x] The web service passes `RADAR_NICHES_TOKEN` from the box `.env`.
-- [ ] The prompt fixes for the two wrong answers below, if the owner agrees.
+- [x] The prompt fixes for the two wrong answers below (owner, 2026-11-11). Judged again with the fixed prompt: the camper floor is fit, the peptide dose is not.
 - [ ] The push waits for the owner's word, and the worker's pause rule is followed (paused by the owner 2026-11-11).
 
 ## Notes
