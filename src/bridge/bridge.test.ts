@@ -278,6 +278,7 @@ describe("the bridge behind Radar's sorter", () => {
           tags: ["standing-desks"],
           newTag: "",
           leaving: "",
+          sellerFit: true,
         }) +
         "\n```",
       usage: { input_tokens: 900, output_tokens: 40 },

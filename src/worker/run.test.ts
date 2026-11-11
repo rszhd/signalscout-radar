@@ -58,6 +58,7 @@ const yes = async (): Promise<SortOutcome> => ({
     tags: ["headphones"],
     newTag: "",
     leaving: "Bose",
+    sellerFit: true,
   },
   tagging: {
     tags: ["headphones", "alt-bose"],

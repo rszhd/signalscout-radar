@@ -55,6 +55,8 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       RADAR_IP_SALT: ${RADAR_IP_SALT:-}
+      # BuyerFinder's admin reads /api/niches with it (US-561). Unset, a 404.
+      RADAR_NICHES_TOKEN: ${RADAR_NICHES_TOKEN:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

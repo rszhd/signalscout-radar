@@ -19,6 +19,7 @@ const verdict = (over: Partial<Verdict>): Verdict => ({
   tags: [],
   newTag: "",
   leaving: "",
+  sellerFit: true,
   ...over,
 });
 

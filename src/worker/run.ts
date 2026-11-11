@@ -380,6 +380,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
                   // A combined search names its own subreddit, not the group.
                   phrase: input.channels.length > 1 && whole.channel ? `r/${whole.channel}` : text,
                   tags: sorted.tagging.tags,
+                  sellerFit: sorted.verdict.sellerFit,
                 });
                 add("kept", 1);
                 phrase.matched += 1;

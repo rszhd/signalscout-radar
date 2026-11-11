@@ -36,6 +36,9 @@ export const verdictSchema = z.object({
     .string()
     .max(60)
     .describe("The brand name of the product the author wants to replace or leave, or an empty string"),
+  sellerFit: z
+    .boolean()
+    .describe("True when a small independent seller could answer the request with a product of their own"),
 });
 
 export type Verdict = z.infer<typeof verdictSchema>;
@@ -139,7 +142,16 @@ export function buildSystemPrompt(tags: readonly TagRow[] = []): string {
     "one they outgrew or wore out and may buy again, and not a shop or a",
     "platform they buy through. Otherwise write an empty string.",
     "",
-    "When it is not a request, give no tags and empty strings.",
+    "SELLER FIT. True when a small independent seller (a one-person shop, an",
+    "Etsy or Shopify store, a small brand) could answer this author with a",
+    "product of their own and be a fair answer: 'a harness for a 40 kg dog that",
+    "pulls', 'durable work boots for wide feet', 'a quiet espresso grinder under",
+    "$300', 'where to buy replacement o-rings'. False when the author chooses",
+    "only between named models of big brands ('iPhone 16 or Pixel 10', 'RTX",
+    "4070 or 7800 XT', 'Model Y or Ioniq 5'), or asks about one exact model, a",
+    "car, a phone, a console or another product only big makers build.",
+    "",
+    "When it is not a request, give no tags, empty strings and seller fit false.",
   ].join("\n");
 }
 

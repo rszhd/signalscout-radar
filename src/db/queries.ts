@@ -56,13 +56,18 @@ export async function markSeen(sql: Sql, platform: string, externalIds: readonly
 
 export async function saveRequest(
   sql: Sql,
-  row: Omit<RequestRow, "id"> & { externalId: string; phrase: string; tags?: readonly string[] },
+  row: Omit<RequestRow, "id"> & {
+    externalId: string;
+    phrase: string;
+    tags?: readonly string[];
+    sellerFit?: boolean | null;
+  },
 ) {
   await sql`
-    insert into requests (platform, external_id, url, channel, title, excerpt, wants, category, posted_at, phrase, tags)
+    insert into requests (platform, external_id, url, channel, title, excerpt, wants, category, posted_at, phrase, tags, seller_fit)
     values (${row.platform}, ${row.externalId}, ${row.url}, ${row.channel}, ${row.title},
             ${row.excerpt}, ${row.wants}, ${row.category}, ${row.postedAt}, ${row.phrase},
-            ${(row.tags ?? []) as string[]})
+            ${(row.tags ?? []) as string[]}, ${row.sellerFit ?? null})
     on conflict (platform, external_id) do nothing`;
 }
 
