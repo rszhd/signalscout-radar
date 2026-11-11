@@ -26,7 +26,7 @@ export const categories = [
   { slug: "computers", name: "Computers & tablets", kind: "goods", covers: "laptops, desktops, tablets, monitors, PC parts" },
   { slug: "phones", name: "Phones & wearables", kind: "goods", covers: "phones, smartwatches, chargers, cases" },
   { slug: "audio", name: "Headphones & audio", kind: "goods", covers: "headphones, earbuds, speakers, microphones" },
-  { slug: "cameras", name: "Cameras & video gear", kind: "goods", covers: "cameras, lenses, lighting, streaming gear" },
+  { slug: "cameras", name: "Cameras & video gear", kind: "goods", covers: "cameras, lenses, lighting, streaming gear, drones and FPV gear" },
   { slug: "home-office", name: "Home office", kind: "goods", covers: "desks, chairs, keyboards, mice, desk accessories" },
   { slug: "tools-electronics", name: "Tools & electronic parts", kind: "goods", covers: "hand and power tools, tool storage, components, 3D printers, radios and antennas" },
   { slug: "home-kitchen", name: "Home & kitchen", kind: "goods", covers: "appliances, furniture, kitchenware, cleaning, garden" },
@@ -37,7 +37,7 @@ export const categories = [
   { slug: "sports-outdoors", name: "Sports & outdoors", kind: "goods", covers: "fitness equipment, camping, running, cycling gear, golf" },
   { slug: "gaming", name: "Gaming", kind: "goods", covers: "consoles, games, controllers, gaming accessories" },
   { slug: "health", name: "Health & supplements", kind: "goods", covers: "supplements, health devices, sleep aids" },
-  { slug: "pets", name: "Pets", kind: "goods", covers: "pet food, pet gear, aquariums" },
+  { slug: "pets", name: "Pets", kind: "goods", covers: "pet food, pet gear, aquariums, horse tack and riding gear, chicken coops and supplies, beekeeping supplies" },
   // Added for the niches Radar's forums and small shops serve (owner,
   // 2026-11-03, US-511): a post no category fits is sorted "other" and lost.
   { slug: "music-gear", name: "Music gear", kind: "goods", covers: "guitars, basses, amps, pedals, keyboards and pianos, drums, DJ gear" },

@@ -4,10 +4,11 @@ A free public page of people asking which product to use or buy, sorted by
 category. A product here is a physical thing: a gadget, a piece of gear, a
 tool, a part or a supply. It lives at **radar.buyerfinder.run**.
 
-Every few hours (`RADAR_RUN_EVERY_HOURS`) a worker searches Reddit (and, when `RADAR_PLATFORMS` turns them
-on, public Facebook groups and the newest threads of 10 forums from different
-niches) for posts like *"can anyone
-recommend…"*, *"what do you use…"* or *"is it worth buying…"*. A free text rule
+Every few hours (`RADAR_RUN_EVERY_HOURS`) a worker reads the newest posts of
+about 30 hobby, pet and craft subreddits, and searches Reddit for phrases such
+as *"can anyone recommend…"* or *"is it worth buying…"* (and, when
+`RADAR_PLATFORMS` turns them on, public Facebook groups and the newest threads
+of 10 forums from different niches). A free text rule
 sets most of them aside. One cheap model call per remaining post decides whether
 it really asks for a product, which category the product is in, and what the
 person wants. The page lists what survives: the category, the platform, a short

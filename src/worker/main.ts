@@ -19,6 +19,7 @@ import {
 } from "@signalscout/engine";
 import { z } from "zod";
 import { connect } from "../db/client.ts";
+import { readingOrder } from "../db/subreddits.ts";
 import { allTags } from "../db/tags.ts";
 import { createMailer } from "../lib/mail.ts";
 import { createSorter } from "../sort/categorize.ts";
@@ -63,11 +64,10 @@ const env = z
     // What one `--backfill` may spend, outside the day's cap.
     RADAR_BACKFILL_CAP_USD: z.preprocess((value) => (value === "" ? undefined : value), z.coerce.number().positive().max(5).default(1)),
     // What a run reads, comma separated: reddit (the search terms),
-    // subreddits, facebook, forum. The Reddit search terms alone since
-    // 2026-11-10 (owner: "turn off search by subreddits and use search terms
-    // only for now").
+    // subreddits, facebook, forum. The chosen subreddits and the search terms
+    // since 2026-11-11 (US-568); the search terms alone from 2026-11-10 to then.
     RADAR_PLATFORMS: z.preprocess(
-      (value) => (value === "" || value === undefined ? "reddit" : value),
+      (value) => (value === "" || value === undefined ? "reddit,subreddits" : value),
       z
         .string()
         .transform((value) => value.split(",").map((name) => name.trim()).filter(Boolean))
@@ -87,23 +87,24 @@ const ai = aiConfigFromEnvironment(aiEnvSchema.parse(process.env));
 
 /**
  * Physical goods only (owner, 2026-11-03, US-511): no software and no hiring
- * subreddits. Reddit, Facebook groups and forums split each run's money by
- * weight (owner, 2026-11-05, at $1.50 a day: Reddit $0.30, Facebook $0.60,
- * forums $0.60, after the first Facebook runs found few requests): the goods
- * subreddits 0.21, the Reddit keyword search 0.09 (their earlier 70/30
- * split), Facebook and the forums 0.60 each. `RADAR_PLATFORMS` turns
- * plans off, and the plans left share the money in the same proportions
- * (owner, 2026-11-10: the Reddit keyword search alone, $0.30 a day, so it has
- * all of it). Facebook's search terms (US-559) weigh 0.09, as Reddit's do:
- * the owner chose $0.30 each, a $0.60 day, on 2026-11-10. What a plan leaves unspent passes to
- * the plans after it, and the forums come last, so they get what Reddit and
- * Facebook leave.
+ * subreddits. Each plan's weight is the dollars a day the owner chose for it,
+ * and the plans `RADAR_PLATFORMS` turns on split each run's money in those
+ * proportions: the subreddits $0.20 and the Reddit search terms $0.30 (owner,
+ * 2026-11-11, US-568: both on, a $0.50 day; the search terms also find the
+ * subreddits worth adding), Facebook's search terms $0.30 (2026-11-10,
+ * US-559), the forums $0.60 (2026-11-05). What a plan leaves unspent passes
+ * to the plans after it, and the forums come last, so they get what Reddit
+ * and Facebook leave.
  *
- * Goods subreddits give 20-24 requests in 24 posts in the laptop and
- * headphone ones (probe of 2026-09-26). Mattress, RobotVacuums, Televisions,
- * airpurifiers, Ultralight, projectors and Tools were added after a probe of
- * 20 candidates on 2026-11-03 (7-16 requests a page); MechanicalKeyboards,
- * homelab, onebag, fountainpens and headphones gave few and were left out.
+ * The subreddits are the ones where small sellers' buyers ask (US-568), so
+ * Radar shows which niches BuyerFinder should look for customers in (US-561).
+ * A survey of 60 candidates on 2026-11-11 (one page each, up to five kept
+ * posts judged for seller fit) kept the 29 with about one fit post a day or
+ * more. Left out, near zero: espresso (big-brand machines), reactivedogs and
+ * parrots (behaviour advice), castiron, EDC, Bonsai, goodyearwelt (people
+ * show what they own), Tacoma, ebikes, ReefTank, gardening, crochet, quilting,
+ * homegym, ChronicPain. The gadget list before it (laptops, phones, cars,
+ * TVs) brought questions only big brands answer.
  *
  * Prices are the connectors' own (`builtInSources`); the worst case is a full
  * page billed at that price. `pnpm phrases` ranks every input by requests per
@@ -252,7 +253,7 @@ const facebookPlan: SearchPlan = {
   platform: "facebook",
   source: createScrapeCreatorsFacebook({ pagesPerPhrase: 3 }).create(runtime),
   credentials: redditKey,
-  share: 0.09,
+  share: 0.3,
   phrases: facebookTerms,
   phrasesSkipFilter: true,
   lookBackMs: 24 * 60 * 60 * 1000,
@@ -268,42 +269,19 @@ const allPlans: SearchPlan[] = [
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.21,
+    share: 0.2,
     ...subreddits,
-    channels: [
-      "SuggestALaptop",
-      "HeadphoneAdvice",
-      "PickAnAndroidForMe",
-      "whatcarshouldIbuy",
-      "buildapcforme",
-      "BuyItForLife",
-      "VacuumCleaners",
-      "OfficeChairs",
-      "BudgetAudiophile",
-      "Cameras",
-      "ebikes",
-      "CampingGear",
-      "Appliances",
-      "StandingDesk",
-      "HomeNetworking",
-      "homegym",
-      "Monitors",
-      "tablets",
-      "Mattress",
-      "RobotVacuums",
-      "Televisions",
-      "airpurifiers",
-      "Ultralight",
-      "projectors",
-      "Tools",
-    ],
+    // Filled at the start of each run from the `subreddits` table, which the
+    // owner changes from BuyerFinder's admin page (US-568), in the order
+    // `readingOrder` gives: ten to a search, the busy ones spread out.
+    channels: [],
     ...redditPrices,
   },
   {
     platform: "reddit",
     source: reddit,
     credentials: redditKey,
-    share: 0.09,
+    share: 0.3,
     phrases: searchTerms,
     // A term found about 13 new posts an hour in October and November 2026,
     // so three hours are about two pages. Four pages leave room for a busy
@@ -322,7 +300,8 @@ const allPlans: SearchPlan[] = [
  * The subreddits are named apart from Reddit's search terms.
  */
 const platforms = new Set<string>(env.RADAR_PLATFORMS);
-const subredditPlan = (plan: SearchPlan) => plan.channels !== undefined && plan.channels.length > 0;
+// The one plan that names `channels`, empty until a run fills it.
+const subredditPlan = (plan: SearchPlan) => plan.channels !== undefined;
 const chosen = allPlans.filter((plan) => platforms.has(subredditPlan(plan) ? "subreddits" : plan.platform));
 const shared = (list: readonly SearchPlan[]): SearchPlan[] => {
   const weight = list.reduce((sum, plan) => sum + (plan.share ?? 0), 0);
@@ -374,9 +353,12 @@ async function once(selected = plans, backfill = false) {
   // The tags as they are now, with yesterday's proposals, so a proposed tag
   // is reused and not proposed again under another name (US-456).
   const sort = createSorter(ai, await allTags(sql));
+  // The subreddits as the table holds them now (US-568).
+  const names = selected.some(subredditPlan) ? await readingOrder(sql) : [];
+  if (selected.some(subredditPlan)) console.log(`subreddits: ${names.length}`);
   await run({
     sql,
-    plans: selected,
+    plans: selected.map((plan) => (subredditPlan(plan) ? { ...plan, channels: names } : plan)),
     sort,
     dailyCapMicros: Math.round((backfill ? env.RADAR_BACKFILL_CAP_USD : env.RADAR_DAILY_CAP_USD) * 1e6),
     runsPerDay: 24 / env.RADAR_RUN_EVERY_HOURS,
