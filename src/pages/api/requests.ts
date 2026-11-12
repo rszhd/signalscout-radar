@@ -2,8 +2,9 @@ import type { APIRoute } from "astro";
 import { requestsPage } from "@/db/queries.ts";
 import { db } from "@/lib/db";
 import { type Platform, toCard } from "@/lib/present";
+import { shownPlatforms } from "@/lib/visibility";
 
-const platforms = new Set<Platform>(["reddit", "facebook", "forum"]);
+const platforms = new Set<Platform>(shownPlatforms);
 
 /**
  * The home feed's next posts (owner, 2026-11-05: "load more" by 10).

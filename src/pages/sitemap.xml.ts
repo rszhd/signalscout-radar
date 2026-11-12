@@ -3,6 +3,7 @@ import { categoryCounts } from "@/db/queries.ts";
 import { shownTags } from "@/db/tags.ts";
 import { db } from "@/lib/db";
 import { mailReady, trendsShown } from "@/lib/site.ts";
+import { mcpEnabled } from "@/lib/visibility";
 
 /** The home page, the about and trends pages, and every category and tag with a request this week. */
 export const GET: APIRoute = async ({ site }) => {
@@ -11,7 +12,7 @@ export const GET: APIRoute = async ({ site }) => {
   const paths = [
     "/",
     "/about",
-    "/mcp-server",
+    ...(mcpEnabled ? ["/mcp-server"] : []),
     ...(trendsShown ? ["/trends"] : []),
     ...(mailReady() ? ["/subscribe"] : []),
     ...counts.filter((c) => c.week > 0).map((c) => `/c/${c.category}`),

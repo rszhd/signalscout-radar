@@ -9,6 +9,7 @@ import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { mailReady } from "@/lib/site.ts";
 import { platforms, toCard, toTiles } from "@/lib/present";
+import { shownPlatforms } from "@/lib/visibility";
 import { categoryBySlug } from "@/sort/categories.ts";
 
 const category = categoryBySlug(Astro.params.slug ?? "");
@@ -30,7 +31,7 @@ const cards = rows.map((row) => toCard(row, now));
 const tiles = toTiles(counts);
 const own = tiles.find((tile) => tile.slug === category.slug);
 const related = tiles.filter((tile) => tile.kind === category.kind && tile.slug !== category.slug).slice(0, 6);
-const byPlatform = (["reddit", "facebook", "forum"] as const)
+const byPlatform = shownPlatforms
   .map((key) => ({ key, count: rows.filter((row) => row.platform === key).length }))
   .sort((a, b) => b.count - a.count);
 const busiest = byPlatform[0]?.count ? platforms[byPlatform[0].key].name : "—";
@@ -43,7 +44,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 
 <Layout
   title={`People asking for ${lower} recommendations | BuyerFinder Radar`}
-  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} product to use or buy. From Reddit, Facebook groups and forums, refreshed every hour.`}
+  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} product to buy, and a small shop could answer. From Reddit, refreshed every few hours.`}
   image={`/og/c/${category.slug}.png`}
   campaign={category.slug}
 >
@@ -98,7 +99,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 
   <section class="mx-auto grid max-w-[1240px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
     <div>
-      <Feed client:load requests={cards} showCategory={false} />
+      <Feed client:load requests={cards} />
       <Pitch topic={name} campaign={category.slug} />
     </div>
     <div class="flex flex-col gap-8 lg:self-start">

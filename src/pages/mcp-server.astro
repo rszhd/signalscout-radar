@@ -5,8 +5,12 @@
  */
 import Layout from "@/layouts/Layout.astro";
 import { siteUrl } from "@/lib/links";
+import { mcpEnabled } from "@/lib/visibility";
 import { callsPerDay } from "@/mcp/http.ts";
 import { maxRows } from "@/mcp/server.ts";
+
+// Hidden for now (US-569).
+if (!mcpEnabled) return new Response("Not found", { status: 404 });
 
 const mcpUrl = `${siteUrl}/mcp`;
 const questions = [

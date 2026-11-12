@@ -45,7 +45,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 
 <Layout
   title={`${heading} | BuyerFinder Radar`}
-  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} to use or buy. From Reddit, Facebook groups and forums, refreshed every hour.${mailReady() ? " Get them by email every morning." : ""}`}
+  description={`${own?.week ?? 0} public posts this week where someone asks which ${lower} to buy, and a small shop could answer. From Reddit, refreshed every few hours.${mailReady() ? " Get them by email every morning." : ""}`}
   campaign={tag.category}
 >
   <section class="border-b bg-card">

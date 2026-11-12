@@ -34,7 +34,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
 
 <Layout
   title="Trends: what people ask to buy | BuyerFinder Radar"
-  description={`What people on Reddit, Facebook groups and forums asked to buy ${period}: the products they want to leave, the tags rising fastest, and the most requested categories.`}
+  description={`What people on Reddit asked to buy ${period}: the products they want to leave, the tags rising fastest, and the most requested categories.`}
 >
   <section class="border-b bg-card">
     <div class="mx-auto max-w-[1240px] px-4 py-10 sm:px-8">
@@ -45,8 +45,8 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
       </nav>
       <h1 class="mt-4 text-3xl leading-tight font-semibold tracking-[-0.03em] sm:text-5xl">What people ask to buy</h1>
       <p class="mt-3 max-w-2xl text-[0.9375rem] text-secondary-foreground">
-        {posts(total)} asking for a product or a service {period}. Every number counts the posts Radar read, from the
-        subreddits, Facebook groups and forums on the <a href="/about" class="font-semibold text-primary hover:underline">How it works</a> page,
+        {posts(total)} asking for a product a small shop could answer, {period}. Every number counts the posts Radar
+        read, from the subreddits and searches on the <a href="/about" class="font-semibold text-primary hover:underline">How it works</a> page,
         so compare within a chart, not with the whole market.
       </p>
     </div>
@@ -111,7 +111,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
     <section class="rounded-2xl border bg-card p-6 lg:col-span-2">
       <h2 class="text-xl font-semibold tracking-tight">By category</h2>
       <p class="mt-1 mb-5 text-[0.9375rem] text-muted-foreground">
-        Posts per category, {period}. Each category's count follows the subreddits, groups and forums Radar reads.
+        Posts per category, {period}. Each category's count follows the subreddits and searches Radar reads.
       </p>
       <BarList
         label={`Posts per category, ${period}`}

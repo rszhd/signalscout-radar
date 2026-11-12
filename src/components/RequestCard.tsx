@@ -41,18 +41,29 @@ export function RequestCard({
         </div>
       </CardContent>
 
-      <CardFooter className="justify-between gap-3 border-t bg-surface-soft px-5 py-3">
-        {showCategory ? (
-          <Badge
-            variant="outline"
-            render={<a href={`/c/${request.category}`} />}
-            className="h-6 rounded-full bg-card px-2.5 text-[0.8125rem]"
-          >
-            {request.categoryName}
-          </Badge>
-        ) : (
-          <span />
-        )}
+      <CardFooter className="flex-wrap justify-between gap-3 border-t bg-surface-soft px-5 py-3">
+        {/* The category and the tags (owner, 2026-11-12): each opens its own page. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          {showCategory && (
+            <Badge
+              variant="outline"
+              render={<a href={`/c/${request.category}`} />}
+              className="h-6 rounded-full bg-card px-2.5 text-[0.8125rem] font-semibold"
+            >
+              {request.categoryName}
+            </Badge>
+          )}
+          {request.tags.map((tag) => (
+            <Badge
+              key={tag.slug}
+              variant="outline"
+              render={<a href={`/t/${tag.slug}`} />}
+              className="h-6 rounded-full border-transparent bg-brand-soft px-2.5 text-[0.8125rem] text-primary"
+            >
+              {tag.name}
+            </Badge>
+          ))}
+        </div>
         <a
           href={request.url}
           target="_blank"

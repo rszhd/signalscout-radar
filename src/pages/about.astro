@@ -3,11 +3,12 @@ import Layout from "@/layouts/Layout.astro";
 import { buyerfinderUrl } from "@/lib/links";
 import { contactUrl } from "@/lib/present";
 import { mailReady } from "@/lib/site";
+import { mcpEnabled } from "@/lib/visibility";
 ---
 
 <Layout
   title="How BuyerFinder Radar works"
-  description="How Radar finds public posts where people ask which product to buy, what it shows, how to search it from Claude or ChatGPT, and how to have a post removed."
+  description="How Radar finds public Reddit posts where people ask which product to buy and a small shop could answer, what it shows, and how to have a post removed."
   image="/og/about.png"
 >
   <article class="mx-auto max-w-[760px] px-4 pt-12 sm:px-8">
@@ -16,16 +17,15 @@ import { mailReady } from "@/lib/site";
 
     <div class="mt-6 space-y-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
       <p>
-        Every hour Radar searches Reddit for public posts with phrases like
-        <em>"can anyone recommend"</em>, <em>"what do you use"</em> and <em>"is it worth buying"</em>.
-        It also reads the newest threads on 8 of about 160 forums, from a different set of niches
-        each hour, from audio and cameras to cars, coffee and fishing, and the newest posts in 8 of
-        about 130 public Facebook groups, picked the same way.
+        Every few hours Radar reads the newest posts in about 30 subreddits where people ask what to
+        buy, from aquariums and sewing to flashlights and guitar pedals. It also searches all of Reddit
+        for phrases like <em>"can anyone recommend"</em> and <em>"is it worth buying"</em>.
       </p>
       <p>
-        A simple text rule sets most of them aside for free. An AI model reads the rest and answers
-        two questions: does the author ask which product to use or buy, and what kind of product is it?
-        It also writes one line that says what the person wants.
+        An AI model reads each post and answers three questions: does the author ask which product to
+        buy, what kind of product is it, and could a small shop answer with a product of its own? It
+        also writes one line that says what the person wants. Radar shows only the posts where a
+        small shop has a real chance, like a harness for a dog that pulls, not "iPhone or Pixel?".
       </p>
       <p>
         Radar is made by{" "}
@@ -39,7 +39,10 @@ import { mailReady } from "@/lib/site";
     <ul class="mt-4 list-disc space-y-2 pl-6 text-[1.0625rem] leading-relaxed text-secondary-foreground">
       <li>A short excerpt of each post and a link to the original.</li>
       <li>No usernames, no profile pictures, and no copy of the full post.</li>
-      <li>Pages show the last 30 days. Through <a href="/mcp-server" class="font-semibold text-primary hover:underline">MCP</a>, your AI can search older posts too.</li>
+      <li>
+        Pages show the last 30 days.
+        {mcpEnabled && <Fragment>Through <a href="/mcp-server" class="font-semibold text-primary hover:underline">MCP</a>, your AI can search older posts too.</Fragment>}
+      </li>
     </ul>
 
     {mailReady() && (
@@ -53,11 +56,15 @@ import { mailReady } from "@/lib/site";
       </Fragment>
     )}
 
-    <h2 id="mcp" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Ask your own AI</h2>
-    <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
-      Radar is also an MCP server, so Claude or ChatGPT can search every post it has kept, for free.{" "}
-      <a href="/mcp-server" class="font-semibold text-primary hover:underline">See how to connect it</a>.
-    </p>
+    {mcpEnabled && (
+      <Fragment>
+        <h2 id="mcp" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Ask your own AI</h2>
+        <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">
+          Radar is also an MCP server, so Claude or ChatGPT can search every post it has kept, for free.{" "}
+          <a href="/mcp-server" class="font-semibold text-primary hover:underline">See how to connect it</a>.
+        </p>
+      </Fragment>
+    )}
 
     <h2 id="remove" class="mt-12 scroll-mt-24 text-2xl font-semibold tracking-tight">Remove a post</h2>
     <p class="mt-4 text-[1.0625rem] leading-relaxed text-secondary-foreground">

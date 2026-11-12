@@ -562,9 +562,9 @@ describe("hidden categories", () => {
   // The switch is on again since 2026-10-08 (US-456); this holds for when it is off.
   it.skipIf(servicesEnabled)("keeps a service row stored but shows none of it while services are off", async () => {
     const { latestRequests, requestsIn, categoryCounts } = await import("../db/queries.ts");
-    await sql`insert into requests (platform, external_id, url, excerpt, wants, category, posted_at, phrase)
-              values ('reddit', 's1', 'https://r/1', 'Need a logo', 'A logo', 'design-services', ${noon}, 'r/DesignJobs'),
-                     ('reddit', 'p1', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop')`;
+    await sql`insert into requests (platform, external_id, url, excerpt, wants, category, posted_at, phrase, seller_fit)
+              values ('reddit', 's1', 'https://r/1', 'Need a logo', 'A logo', 'design-services', ${noon}, 'r/DesignJobs', true),
+                     ('reddit', 'p1', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop', true)`;
 
     const shown = (await latestRequests(sql, 50, noon)).map((row) => row.category);
     const counts = (await categoryCounts(sql, noon)).map((row) => row.category);
@@ -582,9 +582,9 @@ describe("old requests", () => {
     const { forgetOld, latestRequests, requestsIn } = await import("../db/queries.ts");
     const { requestsTagged } = await import("../db/tags.ts");
     const old = new Date(noon.getTime() - 40 * 24 * 60 * 60 * 1000);
-    await sql`insert into requests (platform, external_id, url, excerpt, wants, category, posted_at, phrase, tags)
-              values ('reddit', 'old', 'https://r/1', 'Which laptop?', 'A laptop', 'computers', ${old}, 'r/SuggestALaptop', ${["laptops"]}),
-                     ('reddit', 'new', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop', ${["laptops"]})`;
+    await sql`insert into requests (platform, external_id, url, excerpt, wants, category, posted_at, phrase, tags, seller_fit)
+              values ('reddit', 'old', 'https://r/1', 'Which laptop?', 'A laptop', 'computers', ${old}, 'r/SuggestALaptop', ${["laptops"]}, true),
+                     ('reddit', 'new', 'https://r/2', 'Which laptop?', 'A laptop', 'computers', ${noon}, 'r/SuggestALaptop', ${["laptops"]}, true)`;
     await sql`insert into seen_posts (platform, external_id, seen_at) values ('reddit', 'old', ${old})`;
 
     await forgetOld(sql, noon);

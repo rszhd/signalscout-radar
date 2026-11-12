@@ -3,11 +3,14 @@ import { RequestCard } from "@/components/RequestCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Card, type Platform, platforms } from "@/lib/present";
+import { shownPlatforms } from "@/lib/visibility";
 
 type Filter = "all" | Platform;
 
-// X is read no more and its posts are hidden (US-511).
-const order: Filter[] = ["all", "reddit", "facebook", "forum"];
+// X is read no more and its posts are hidden (US-511). The tabs follow the
+// platforms the page shows (US-569); with one platform there are none.
+const order: Filter[] = ["all", ...shownPlatforms];
+const tabsShown = shownPlatforms.length > 1;
 
 /** Posts a tab opens with, and posts each "Load more" adds (owner, 2026-11-05). */
 export const firstPage = 20;
@@ -92,7 +95,7 @@ export function Feed({
 
   return (
     <div className="flex flex-col gap-5">
-      <Tabs value={filter} onValueChange={(value) => choose(value as Filter)}>
+      {tabsShown && <Tabs value={filter} onValueChange={(value) => choose(value as Filter)}>
         <TabsList className="h-10! w-fit justify-start gap-1 rounded-full border bg-card p-1">
           {order.map((key) => {
             const count = countOf(key);
@@ -114,7 +117,7 @@ export function Feed({
             );
           })}
         </TabsList>
-      </Tabs>
+      </Tabs>}
 
       <div className="grid gap-4">
         {shown.map((request) => (

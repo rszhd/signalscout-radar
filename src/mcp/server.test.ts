@@ -14,11 +14,13 @@ beforeEach(async () => {
   await sql`insert into tags (slug, name, category, kind, shown_at) values
     ('standing-desks', 'Standing desks', 'home-office', 'product', ${now}),
     ('alt-bose', 'Alternatives to Bose', 'audio', 'alt', ${now})`;
+  // seller_fit is set after the insert: the trends MCP serves count only shown posts (US-569).
   await sql`insert into requests (platform, external_id, url, channel, excerpt, wants, category, posted_at, phrase, tags, removed_at) values
     ('reddit', 'a', 'https://reddit.com/a', 'OfficeChairs', 'Which standing desk under $400?', 'A standing desk under $400', 'home-office', ${daysAgo(1)}, 'r/OfficeChairs', ${["standing-desks"]}, null),
     ('x', 'b', 'https://x.com/i/status/b', 'what app do you', 'Leaving Bose, what CRM 100%?', 'A cheaper CRM', 'audio', ${daysAgo(2)}, 'what app do you', ${["alt-bose"]}, null),
     ('reddit', 'c', 'https://reddit.com/c', 'OfficeChairs', 'Old standing desk post', 'A standing desk', 'home-office', ${daysAgo(40)}, 'r/OfficeChairs', ${["standing-desks"]}, null),
     ('reddit', 'd', 'https://reddit.com/d', 'OfficeChairs', 'Removed standing desk post', 'A standing desk', 'home-office', ${daysAgo(1)}, 'r/OfficeChairs', ${["standing-desks"]}, ${now})`;
+  await sql`update requests set seller_fit = true`;
 });
 afterEach(async () => {
   await drop();
@@ -109,7 +111,8 @@ describe("MCP", () => {
     expect((await call("list_tags", { category: "audio" })).data).toEqual([
       { slug: "alt-bose", name: "Alternatives to Bose", category: "audio", kind: "alt", requests: 1, page: "https://radar.buyerfinder.run/t/alt-bose" },
     ]);
-    expect((await call("trends", { view: "leaving" })).data).toEqual([{ slug: "alt-bose", name: "Alternatives to Bose", count: 1 }]);
+    // The trends follow the page (US-569): the Bose post is X's, a platform the page hides.
+    expect((await call("trends", { view: "leaving" })).data).toEqual([]);
   });
 
   it("refuses a bad argument without running a query", async () => {

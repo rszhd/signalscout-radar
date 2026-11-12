@@ -1,5 +1,6 @@
 import { categorySlugs } from "../sort/categories.ts";
 import type { Sql } from "./client.ts";
+import { shownRequest } from "./shown.ts";
 
 export interface RequestRow {
   id: string;
@@ -11,6 +12,8 @@ export interface RequestRow {
   wants: string;
   category: string;
   postedAt: Date;
+  /** The post's shown tags, products first, for the card (owner, 2026-11-12). */
+  tagList?: { slug: string; name: string }[];
 }
 
 /** What one UTC day has spent so far, providers and models together. */
@@ -96,13 +99,17 @@ export async function forgetOld(sql: Sql, now = new Date()) {
 /** The categories the page may show; a hidden kind's rows stay stored (US-429). */
 const shown = () => categorySlugs as string[];
 
-const columns = (sql: Sql) => sql`
-  id::text, platform, url, channel, title, excerpt, wants, category, posted_at as "postedAt"`;
+/** What a card needs, for a query on `requests` with no alias. */
+export const requestColumns = (sql: Sql) => sql`
+  id::text, platform, url, channel, title, excerpt, wants, category, posted_at as "postedAt",
+  coalesce((select json_agg(json_build_object('slug', t.slug, 'name', t.name) order by t.kind desc, t.name)
+            from tags t where t.slug = any (requests.tags) and t.shown_at is not null), '[]'::json) as "tagList"`;
+const columns = requestColumns;
 
 export async function latestRequests(sql: Sql, limit = 50, now = new Date()): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests
-    where removed_at is null and category in ${sql(shown())} and posted_at >= ${shownSince(now)}
+    where ${shownRequest(sql)} and category in ${sql(shown())} and posted_at >= ${shownSince(now)}
     order by posted_at desc limit ${limit}`;
 }
 
@@ -125,7 +132,7 @@ export async function requestsPage(
   const { limit, platform, before } = options;
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests
-    where removed_at is null and category in ${sql(shown())} and posted_at >= ${shownSince(now)}
+    where ${shownRequest(sql)} and category in ${sql(shown())} and posted_at >= ${shownSince(now)}
       ${platform ? sql`and platform = ${platform}` : sql``}
       ${before ? sql`and (posted_at, id) < (${before.postedAt}, ${before.id}::bigint)` : sql``}
     order by posted_at desc, id desc limit ${limit}`;
@@ -135,7 +142,7 @@ export async function requestsPage(
 export async function platformCountsLastDay(sql: Sql, now = new Date()): Promise<Partial<Record<RequestRow["platform"], number>>> {
   const rows = await sql<{ platform: RequestRow["platform"]; count: string }[]>`
     select platform, count(*)::text as count from requests
-    where removed_at is null and category in ${sql(shown())}
+    where ${shownRequest(sql)} and category in ${sql(shown())}
       and posted_at >= ${new Date(now.getTime() - 24 * 60 * 60 * 1000)}
     group by platform`;
   return Object.fromEntries(rows.map((row) => [row.platform, Number(row.count)]));
@@ -144,7 +151,7 @@ export async function platformCountsLastDay(sql: Sql, now = new Date()): Promise
 export async function requestsIn(sql: Sql, category: string, limit = 100, now = new Date()): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
     select ${columns(sql)} from requests
-    where removed_at is null and category = ${category} and category in ${sql(shown())}
+    where ${shownRequest(sql)} and category = ${category} and category in ${sql(shown())}
       and posted_at >= ${shownSince(now)}
     order by posted_at desc limit ${limit}`;
 }
@@ -163,7 +170,7 @@ export async function categoryCounts(sql: Sql, now = new Date()): Promise<Catego
       count(*) filter (where posted_at < ${now}::timestamptz - interval '7 days'
                          and posted_at >= ${now}::timestamptz - interval '14 days')::text as previous
     from requests
-    where removed_at is null and posted_at >= ${now}::timestamptz - interval '14 days'
+    where ${shownRequest(sql)} and posted_at >= ${now}::timestamptz - interval '14 days'
       and category in ${sql(shown())}
     group by category`;
   return rows.map((row) => ({

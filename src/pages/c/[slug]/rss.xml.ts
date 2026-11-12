@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ params }) => {
   return feedResponse(
     renderFeed({
       title: `People asking for ${category.name} | BuyerFinder Radar`,
-      description: `Public posts from Reddit, Facebook groups and forums where someone asks which ${category.name.toLowerCase()} product to use or buy.`,
+      description: `Public Reddit posts where someone asks which ${category.name.toLowerCase()} product to buy, and a small shop could answer.`,
       page: `/c/${category.slug}`,
       self: `/c/${category.slug}/rss.xml`,
       campaign: category.slug,

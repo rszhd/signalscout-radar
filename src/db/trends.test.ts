@@ -34,9 +34,10 @@ async function posts(
 ) {
   for (let i = 0; i < count; i += 1) {
     nextId += 1;
-    await sql`insert into requests (platform, external_id, url, channel, excerpt, wants, category, posted_at, phrase, tags, removed_at)
+    // A shown post is one a small seller could answer (US-569).
+    await sql`insert into requests (platform, external_id, url, channel, excerpt, wants, category, posted_at, phrase, tags, removed_at, seller_fit)
               values (${platform}, ${`p${nextId}`}, ${`https://r/${nextId}`}, ${channel}, 'Which one?', 'One',
-                      ${category}, ${at}, 'test', ${tags}, ${removed ? now : null})`;
+                      ${category}, ${at}, 'test', ${tags}, ${removed ? now : null}, true)`;
   }
 }
 
@@ -82,14 +83,14 @@ describe("trends", () => {
     ]);
   });
 
-  it("names where a tag's posts were found, with X as one place", async () => {
+  it("names where a tag's posts were found, Reddit's subreddits alone (US-569)", async () => {
     await posts(3, { tags: ["laptops"], channel: "SuggestALaptop" });
     await posts(1, { tags: ["laptops"], channel: "BuyItForLife" });
     await posts(2, { tags: ["laptops"], platform: "x", channel: "is there an app" });
+    await posts(2, { tags: ["laptops"], platform: "forum", channel: "forum.example" });
 
     expect(await tagChannels(sql, "laptops", 6, now)).toEqual([
       { platform: "reddit", channel: "SuggestALaptop", count: 3 },
-      { platform: "x", channel: null, count: 2 },
       { platform: "reddit", channel: "BuyItForLife", count: 1 },
     ]);
   });

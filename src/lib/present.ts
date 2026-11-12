@@ -24,6 +24,8 @@ export interface Card {
   wants: string;
   category: string;
   categoryName: string;
+  /** Shown tags, products first; each links to its tag page. */
+  tags: { slug: string; name: string }[];
   age: string;
   /** ISO time the post was written: where "Load more" continues. */
   postedAt: string;
@@ -47,6 +49,7 @@ export function toCard(row: RequestRow, now = new Date()): Card {
     wants: row.wants,
     category: row.category,
     categoryName: categoryBySlug(row.category)?.name ?? row.category,
+    tags: row.tagList ?? [],
     age: formatAge(row.postedAt, now),
     postedAt: row.postedAt.toISOString(),
   };

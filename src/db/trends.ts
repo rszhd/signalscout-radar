@@ -11,6 +11,7 @@
 import { categorySlugs } from "../sort/categories.ts";
 import type { Sql } from "./client.ts";
 import { shownSince } from "./queries.ts";
+import { shownRequest, shownRequestR } from "./shown.ts";
 
 /**
  * Fewer posts than this in a week and a tag's change is noise: 1 to 4 is
@@ -59,7 +60,7 @@ async function tagCounts(sql: Sql, kind: "product" | "alt", limit: number, span:
     select t.slug, t.name, count(*)::text as count
     from tags t join requests r on t.slug = any (r.tags)
     where t.kind = ${kind} and t.shown_at is not null and t.category in ${sql(shown())}
-      and r.removed_at is null ${within(sql, span)}
+      and ${shownRequestR(sql)} ${within(sql, span)}
     group by t.slug, t.name
     order by count(*) desc, t.name
     limit ${limit}`;
@@ -83,7 +84,7 @@ export function topTags(sql: Sql, limit = 15, span = shownSpan()): Promise<Count
 export async function topCategories(sql: Sql, span = shownSpan()): Promise<{ slug: string; count: number }[]> {
   const rows = await sql<{ slug: string; count: string }[]>`
     select category as slug, count(*)::text as count from requests r
-    where removed_at is null and category in ${sql(shown())} ${within(sql, span)}
+    where ${shownRequest(sql)} and category in ${sql(shown())} ${within(sql, span)}
     group by category
     order by count(*) desc, category`;
   return rows.map((row) => ({ slug: row.slug, count: Number(row.count) }));
@@ -101,7 +102,7 @@ export async function risingTags(sql: Sql, limit = 10, now = new Date()): Promis
       count(*) filter (where r.posted_at < ${now}::timestamptz - interval '7 days')::text as previous
     from tags t join requests r on t.slug = any (r.tags)
     where t.shown_at is not null and t.category in ${sql(shown())}
-      and r.removed_at is null and r.posted_at >= ${now}::timestamptz - interval '14 days'
+      and ${shownRequestR(sql)} and r.posted_at >= ${now}::timestamptz - interval '14 days'
       and r.posted_at < ${now}::timestamptz
     group by t.slug, t.name`;
   return rows
@@ -116,7 +117,7 @@ export async function tagChannels(sql: Sql, slug: string, limit = 6, now = new D
   const rows = await sql<{ platform: "reddit" | "x" | "forum" | "facebook"; channel: string | null; count: string }[]>`
     select platform, case when platform = 'x' then null else channel end as channel, count(*)::text as count
     from requests
-    where removed_at is null and ${slug} = any (tags) and category in ${sql(shown())}
+    where ${shownRequest(sql)} and ${slug} = any (tags) and category in ${sql(shown())}
       and posted_at >= ${shownSince(now)}
     group by 1, 2
     order by count(*) desc, 2

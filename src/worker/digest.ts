@@ -13,6 +13,7 @@
  */
 import { categorySlugs } from "../sort/categories.ts";
 import type { Sql } from "../db/client.ts";
+import { shownRequest } from "../db/shown.ts";
 import { type DigestPost, digestEmail } from "../lib/email.ts";
 import type { Send } from "../lib/mail.ts";
 
@@ -72,7 +73,7 @@ export async function sendDigests(
             select platform, channel, url, wants, excerpt, posted_at as "postedAt", tags,
               (count(*) over ())::int as total
             from requests
-            where removed_at is null and category in ${sql(categorySlugs as string[])}
+            where ${shownRequest(sql)} and category in ${sql(categorySlugs as string[])}
               and tags && ${followed}::text[]
               and found_at > ${subscriber.since} and found_at <= ${now}
             order by posted_at desc

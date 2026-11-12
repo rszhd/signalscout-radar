@@ -3,6 +3,9 @@
  *
  *   node --env-file=.env scripts/judge-fit.ts --limit 40 --dry-run  # print, write nothing
  *   node --env-file=.env scripts/judge-fit.ts --limit 40 --days 30  # newest first
+ *   ... --platform all   # every platform; Reddit alone by default, the one the page shows (US-569)
+ *
+ * On the box: `docker exec signalscout-radar-worker-1 node scripts/judge-fit.ts ...`.
  *
  * One model call per post, through the same sort as the worker. Only
  * `seller_fit` is written: category, tags and the `wants` line stay as the
@@ -23,6 +26,7 @@ const argument = (name: string) => {
 };
 const limit = Number(argument("--limit") ?? "0");
 const days = Number(argument("--days") ?? "30");
+const platform = argument("--platform") ?? "reddit";
 const dryRun = process.argv.includes("--dry-run");
 if (!Number.isInteger(limit) || limit <= 0) throw new Error("say how many posts: --limit <n>");
 if (!Number.isInteger(days) || days <= 0) throw new Error("--days must be a whole number of days");
@@ -38,6 +42,7 @@ const rows = await sql<
   select id::text, platform, channel, title, excerpt, wants, category from requests
   where removed_at is null and seller_fit is null and category in ${sql(categorySlugs as string[])}
     and posted_at >= now() - make_interval(days => ${days})
+    ${platform === "all" ? sql`` : sql`and platform = ${platform}`}
   order by posted_at desc limit ${limit}`;
 console.log(`${rows.length} posts to judge${dryRun ? " (dry run)" : ""}`);
 

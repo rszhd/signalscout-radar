@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 
 import { buyerfinderUrl, siteUrl } from "@/lib/links";
 import { mailReady, trendsShown } from "@/lib/site";
+import { mcpEnabled } from "@/lib/visibility";
 
 interface Props {
   title: string;
@@ -78,7 +79,7 @@ const analyticsId = process.env.GA_MEASUREMENT_ID;
           {trendsShown && <a href="/trends" class="hover:text-foreground">Trends</a>}
           <a href="/about" class="hover:text-foreground">How it works</a>
           {mailReady() && <a href="/subscribe" class="hover:text-foreground">Daily email</a>}
-          <a href="/mcp-server" class="hover:text-foreground">MCP</a>
+          {mcpEnabled && <a href="/mcp-server" class="hover:text-foreground">MCP</a>}
         </nav>
         <a
           href={buyerfinderUrl("header", campaign)}

@@ -24,12 +24,12 @@ afterEach(async () => {
 });
 
 let nextId = 0;
-async function request(tags: string[], foundAt: Date, category = "home-office") {
+async function request(tags: string[], foundAt: Date, category = "home-office", fit: boolean | null = true) {
   nextId += 1;
   await sql`
-    insert into requests (platform, external_id, url, channel, excerpt, wants, category, posted_at, found_at, tags)
+    insert into requests (platform, external_id, url, channel, excerpt, wants, category, posted_at, found_at, tags, seller_fit)
     values ('reddit', ${`p${nextId}`}, ${`https://reddit.com/p${nextId}`}, 'desks', 'Which desk for a small room?',
-            ${`A desk ${nextId}`}, ${category}, ${foundAt}, ${foundAt}, ${tags})`;
+            ${`A desk ${nextId}`}, ${category}, ${foundAt}, ${foundAt}, ${tags}, ${fit})`;
 }
 
 /** A confirmed subscriber, confirmed at `at`. */
@@ -122,11 +122,14 @@ describe("sendDigests", () => {
     expect(sent).toHaveLength(0);
   });
 
-  it("leaves out removed posts and categories no longer offered", async () => {
+  it("leaves out removed posts, categories no longer offered, and posts the page hides", async () => {
     await subscriber("a@example.com", ["standing-desks"], day1);
     await request(["standing-desks"], new Date("2026-10-08T20:00:00Z"));
     await sql`update requests set removed_at = now()`;
     await request(["standing-desks"], new Date("2026-10-08T21:00:00Z"), "retired-category");
+    // US-569: not one a small seller could answer, or not judged yet.
+    await request(["standing-desks"], new Date("2026-10-08T21:10:00Z"), "home-office", false);
+    await request(["standing-desks"], new Date("2026-10-08T21:20:00Z"), "home-office", null);
 
     await sendDigests(sql, send, "https://radar.example", day2At8);
     expect(sent).toHaveLength(0);

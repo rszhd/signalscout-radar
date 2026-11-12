@@ -5,7 +5,8 @@
 import { categorySlugs } from "../sort/categories.ts";
 import { listedTagRows, proposalShownAt } from "../sort/tags.ts";
 import type { Sql } from "./client.ts";
-import { type RequestRow, shownSince } from "./queries.ts";
+import { type RequestRow, requestColumns, shownSince } from "./queries.ts";
+import { shownRequest, shownRequestR } from "./shown.ts";
 
 export interface TagRow {
   slug: string;
@@ -36,20 +37,25 @@ export async function proposeTags(sql: Sql, proposals: readonly TagRow[]): Promi
 }
 
 /**
- * Show every hidden tag that posts of the shown days now carry often enough.
- * Returns the slugs shown, for the run's log.
+ * Show every hidden tag that shown posts of the shown days now carry often
+ * enough (US-569: posts the page hides do not count). Returns the slugs
+ * shown, for the run's log.
  */
 export async function showBusyProposals(sql: Sql, now = new Date()): Promise<string[]> {
   const rows = await sql<{ slug: string }[]>`
     update tags set shown_at = now()
     where shown_at is null and slug in (
-      select unnest(tags) as slug from requests where removed_at is null and posted_at >= ${shownSince(now)}
+      select unnest(tags) as slug from requests where ${shownRequest(sql)} and posted_at >= ${shownSince(now)}
       group by 1 having count(*) >= ${proposalShownAt})
     returning slug`;
   return rows.map((row) => row.slug);
 }
 
-/** Hidden tags no post of the shown days carries any more: proposals that never caught on. */
+/**
+ * Hidden tags no post of the shown days carries any more: proposals that never
+ * caught on. Every kept post counts here, hidden from the page or not: the
+ * admin's niche ranking (US-561) reads these tags.
+ */
 export async function forgetIdleProposals(sql: Sql, now = new Date()): Promise<void> {
   await sql`
     delete from tags t where t.shown_at is null
@@ -71,7 +77,7 @@ export async function shownTags(sql: Sql, now = new Date()): Promise<TagCount[]>
   const rows = await sql<(TagRow & { week: string })[]>`
     select t.slug, t.name, t.category, t.kind,
       (select count(*) from requests r
-        where r.removed_at is null and t.slug = any (r.tags)
+        where ${shownRequestR(sql)} and t.slug = any (r.tags)
           and r.posted_at >= ${now}::timestamptz - interval '7 days')::text as week
     from tags t
     where t.shown_at is not null and t.category in ${sql(categorySlugs as string[])}
@@ -98,9 +104,9 @@ export async function onlyShown(sql: Sql, slugs: readonly string[]): Promise<str
 
 export async function requestsTagged(sql: Sql, slug: string, limit = 100, now = new Date()): Promise<RequestRow[]> {
   return sql<RequestRow[]>`
-    select id::text, platform, url, channel, title, excerpt, wants, category, posted_at as "postedAt"
+    select ${requestColumns(sql)}
     from requests
-    where removed_at is null and ${slug} = any (tags) and category in ${sql(categorySlugs as string[])}
+    where ${shownRequest(sql)} and ${slug} = any (tags) and category in ${sql(categorySlugs as string[])}
       and posted_at >= ${shownSince(now)}
     order by posted_at desc limit ${limit}`;
 }
