@@ -4,13 +4,16 @@
  * Information, not a pitch. "Rising" needs a week before to compare with, so
  * until any category has one (five requests or more), it shows the busiest.
  */
+import type { Count } from "@/db/trends.ts";
 import type { CategoryTile } from "@/lib/present";
 
 interface Props {
   tiles: CategoryTile[];
+  /** The product tags with the most shown posts in the last 7 days (owner, 2026-11-12). */
+  tags: Count[];
 }
 
-const { tiles } = Astro.props;
+const { tiles, tags } = Astro.props;
 const rising = tiles
   .filter((tile) => tile.trend !== null && tile.trend > 0)
   .sort((a, b) => (b.trend ?? 0) - (a.trend ?? 0))
@@ -38,6 +41,28 @@ const top = showRising ? rising : busiest;
                 <span class:list={["tabular-nums", showRising ? "text-success" : "text-secondary-foreground"]}>
                   {showRising ? `+${tile.trend}%` : tile.week}
                 </span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )
+  }
+  {
+    tags.length > 0 && (
+      <section>
+        <h2 class="mb-3 px-3 text-[0.8125rem] font-semibold tracking-wider text-muted-foreground uppercase">
+          Top tags this week
+        </h2>
+        <ol class="flex flex-col gap-1">
+          {tags.map((tag) => (
+            <li>
+              <a
+                href={`/t/${tag.slug}`}
+                class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-[0.9375rem] hover:bg-brand-soft/60"
+              >
+                <span class="font-semibold text-foreground">{tag.name}</span>
+                <span class="tabular-nums text-secondary-foreground">{tag.count}</span>
               </a>
             </li>
           ))}

@@ -4,6 +4,7 @@ import { Feed, firstPage } from "@/components/Feed";
 import Pitch from "@/components/Pitch.astro";
 import Sidebar from "@/components/Sidebar.astro";
 import { categoryCounts, lastRunAt, platformCountsLastDay, requestsPage } from "@/db/queries.ts";
+import { topTags } from "@/db/trends.ts";
 import Layout from "@/layouts/Layout.astro";
 import { db } from "@/lib/db";
 import { formatAge, platforms, toCard, toTiles } from "@/lib/present";
@@ -13,11 +14,13 @@ import { servicesEnabled } from "@/sort/categories.ts";
 
 const sql = db();
 const now = new Date();
-const [counts, rows, updated, lastDay] = await Promise.all([
+const [counts, rows, updated, lastDay, weekTags] = await Promise.all([
   categoryCounts(sql, now),
   requestsPage(sql, { limit: firstPage }, now),
   lastRunAt(sql),
   platformCountsLastDay(sql, now),
+  // The side column's top tags (owner, 2026-11-12): the last 7 days' shown posts.
+  topTags(sql, 10, { from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), until: null }),
 ]);
 const tiles = toTiles(counts);
 const software = tiles.filter((tile) => tile.kind === "software");
@@ -106,7 +109,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300");
       <Pitch />
     </div>
     <div class="lg:pt-[4.25rem]">
-      <Sidebar tiles={tiles} />
+      <Sidebar tiles={tiles} tags={weekTags} />
     </div>
   </section>
 </Layout>
